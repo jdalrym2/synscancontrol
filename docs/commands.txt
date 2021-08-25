@@ -1,0 +1,100 @@
+Pulseguide commands:
+TODO
+
+Skywatcher commands:
+E - Set Position
+  - Set motor position to command position
+  - Empty reply
+  - If motor not stopped: error reply
+  
+F - Initialization Done
+  - Log init done. Empty reply
+  
+G - Set Motion Mode
+  - Set motor speed to command speed
+  - Set motor type to command type
+  - Set motor direction to command direction
+  - Empty reply
+  - If motor not stopped: error reply
+  
+S - Set Goto Target
+  - Set motor "original position" to current position (why?)
+  - Set motor target position to command position
+  - Empty reply
+  - If motor not stopped: error reply
+
+H - Set Goto Target Increment
+  - Set motor "original position" to current position (why?)
+  - Add (or subtract) increment from target position (CW -> add increment)
+  - Empty reply
+  - If motor not stopped: error reply
+
+I - Set Step Period
+  - Set motor step period with command step period
+  - Empty reply
+
+J - Start Motion
+  - If motor speed is slow (default) -> enable microstepping
+  - If motor speed is fast -> disable microstepping
+  - If motor type is not None:
+    - Set current step period to sidereal step period
+	- Set current step frequency to TIMER_FREQ / current step period
+	- Set "toStop" state variable to false, set "moving" state variable to try
+	- Empty reply
+  - If motor type is None:
+    - Error reply (not initialized)
+
+K - Stop Motion
+  - Set "toStop" state variable to true
+  - Empty reply
+
+L - Instant Stop
+  - Immediately stop the driver
+
+O - Set Switch
+  - Ignored in software (wonder what this does?)
+
+P - Set AutoGuide Speed
+  - Set autoguide mode to parsed speed
+
+V - Set Polar LED Brightness
+  - Ignored by software (won't be ignored by me!)
+
+a - Get Counts Per Rev
+  - "Data reply" - constant STEPS_PER_RA_REV
+
+b - Get Timer Freq
+  - "Data reply" - constant TIMER_FREQ
+
+h - Get Goto Target Position
+  - PositionReply -> motor target position
+
+i - Get Step Period
+  - DataReply -> step period
+
+j - Get Position
+  - Data reply -> motor position
+
+f - Get Status
+  - StatusReply -> is init done? Is blocked? Is running? Slew mode? Speed mode? Direction?
+
+g - Get High Speed Ratio
+  - Data reply -> HIGH_SPEED_RATIO constant
+
+D - Get SiderealPeriod
+  - Data reply motor sidereal period
+
+d - Get Axis Position
+  - Position reply -> motor position
+
+e - Get Version
+  - VersionReply - version
+
+s - Get PEC Period
+  - DataReply - motor PEC period
+
+q - Get Extended
+  - If specific message type:
+	- Extended status reply: support dual encoder? EQAZ mode support? Has polar LED? OriginalIdxPosSupport? PPEC support? PEC tracking? PEC training? Torque selection support? Two axes separate?
+  - Else: errorreply unknown command
+
