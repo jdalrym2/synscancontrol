@@ -1,5 +1,7 @@
-#ifndef REPLY_H_
-#define REPLY_H_
+#ifndef REPLY_H
+#define REPLY_H
+
+#include <Arduino.h>
 
 #include "HexConversionUtils.hpp"
 
@@ -353,4 +355,4 @@ public:
     }
 };
 
-#endif /* REPLY_H_ */
+#endif /* REPLY_H */

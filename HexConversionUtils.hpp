@@ -1,6 +1,7 @@
-#ifndef HEX_CONVERSION_UTILS_H_
-#define HEX_CONVERSION_UTILS_H_
+#ifndef HEX_CONVERSION_UTILS_H
+#define HEX_CONVERSION_UTILS_H
 
+#include <stdio.h>
 #include <stdint.h>
 
 namespace HexConversionUtils
@@ -80,7 +81,7 @@ namespace HexConversionUtils
     }
 
     template <class T>
-    void toHexString(T data, char *output, uint32_t len)
+    void toHexString(uint32_t data, char *output, uint32_t len)
     {
         uint8_t b6, b5, b4, b3, b2, b1;
         b6 = (data & 0xF00000) >> 20;
@@ -105,4 +106,4 @@ namespace HexConversionUtils
     }
 }
 
-#endif /*  HEX_CONVERSION_UTILS_H_ */
+#endif /* HEX_CONVERSION_UTILS_H */

@@ -1,5 +1,5 @@
-#ifndef ENUMS_H_
-#define ENUMS_H_
+#ifndef ENUMS_H
+#define ENUMS_H
 
 enum class AxisEnum
 {
@@ -71,4 +71,4 @@ enum class ErrorEnum
     NO_VALID_PEC_DATA_ERROR = 8
 };
 
-#endif /* ENUMS_H_ */
+#endif /* ENUMS_H */
