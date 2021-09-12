@@ -6,7 +6,7 @@
 
 namespace HexConversionUtils
 {
-    const uint32_t charToHex(char c)
+    inline const uint32_t charToHex(char c)
     {
         switch (c)
         {
@@ -49,7 +49,7 @@ namespace HexConversionUtils
     }
 
     template <class T>
-    const T parseToHex(const char *data, uint32_t len)
+    inline const T parseToHex(const char *data, uint32_t len)
     {
         T r = 0;
         if (len == 6)
@@ -81,7 +81,7 @@ namespace HexConversionUtils
     }
 
     template <class T>
-    void toHexString(uint32_t data, char *output, uint32_t len)
+    inline void toHexString(uint32_t data, char *output, uint32_t len)
     {
         uint8_t b6, b5, b4, b3, b2, b1;
         b6 = (data & 0xF00000) >> 20;

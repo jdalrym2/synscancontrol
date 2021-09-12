@@ -8,9 +8,10 @@
 class Reply
 {
 protected:
-public:
     Reply() {}
-    ~Reply(){};
+
+public:
+    virtual ~Reply() {}
 
     virtual void send(HardwareSerial *s);
 };

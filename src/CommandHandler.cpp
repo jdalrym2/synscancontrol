@@ -1,45 +1,9 @@
-#ifndef COMMAND_HANDLER_H
-#define COMMAND_HANDLER_H
+#include "CommandHandler.hpp"
 
-//#define DEBUG
-
-#include <Arduino.h>
-#include <AltSoftSerial.h>
-
-#include "Motor.hpp"
-#include "Reply.hpp"
-#include "Enums.hpp"
-#include "Command.hpp"
-
-#define COMMAND_BUFFER_SIZE 256
-
-class CommandHandler
-{
-public:
-    CommandHandler(AltSoftSerial *serial, HardwareSerial *serialOut, Motor *raMotor, Motor *decMotor);
-    void processSerial();
-    void clearBuffer();
-    Motor *getMotorForAxis(AxisEnum axis);
-
-private:
-    AltSoftSerial *_serialIn;
-    HardwareSerial *_serialOut;
-    Motor *_raMotor;
-    Motor *_decMotor;
-    char _buffer[COMMAND_BUFFER_SIZE + 1];
-    uint16_t _buffer_idx = 0;
-    const char _startChar = ':';
-    const char _endChar = '\r';
-
-private:
-    Reply *_processCommand(Command *command);
-};
-
-CommandHandler::CommandHandler(AltSoftSerial *serialIn, HardwareSerial *serialOut,
+CommandHandler::CommandHandler(HardwareSerial *commSerial,
                                Motor *raMotor, Motor *decMotor)
 {
-    _serialIn = serialIn;
-    _serialOut = serialOut;
+    _commSerial = commSerial;
     _raMotor = raMotor;
     _decMotor = decMotor;
 }
@@ -47,11 +11,10 @@ CommandHandler::CommandHandler(AltSoftSerial *serialIn, HardwareSerial *serialOu
 void CommandHandler::processSerial()
 {
     // TODO: does this take too long?
-    while (_serialIn->available() > 0)
+    while (_commSerial->available() > 0)
     {
-
         // Read in a character
-        char inChar = _serialIn->read();
+        char inChar = _commSerial->read();
 
         // If it's the start character, clear the buffer
         if (inChar == _startChar)
@@ -77,7 +40,7 @@ void CommandHandler::processSerial()
                     // create a Serial output buffer and send when available
                     if (reply)
                     {
-                        reply->send(_serialOut);
+                        reply->send(_commSerial);
                     }
                     else
                     {
@@ -475,5 +438,3 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     return reply;
 }
-
-#endif /* COMMAND_HANDLER_H */

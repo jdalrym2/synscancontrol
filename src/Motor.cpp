@@ -1,5 +1,7 @@
 #include "Motor.hpp"
 
+#include <Arduino.h>
+
 Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR)
 {
     _axis = axis;
