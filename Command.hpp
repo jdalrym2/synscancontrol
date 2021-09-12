@@ -665,12 +665,52 @@ public:
     }
 };
 
-class GetExtendedStatusCommand : public GetterCommand
+class GetExtendedStatusCommand : public Command
 {
+public:
+    enum class StatusType
+    {
+        POSITION,
+        STATUS_EX,
+        NONE
+    };
+
+private:
+    static const uint16_t MSG_SIZE = 9;
+    StatusType _type = StatusType::NONE;
+
 public:
     GetExtendedStatusCommand()
     {
         _cmd = CommandEnum::GET_EXTENDED_STATUS_CMD;
+    }
+
+    bool parse(const char *data, uint16_t len) override
+    {
+        bool success = false;
+        if (len == MSG_SIZE)
+        {
+            if (data[0] == ':')
+            {
+                char header = data[1];
+                if (header == (char)_cmd)
+                {
+                    _axis = parseAxis(data[2]);
+                    uint32_t val = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                    if (val == 1)
+                    {
+                        _type = StatusType::STATUS_EX;
+                    }
+                    else if (val == 0)
+                    {
+                        _type = StatusType::POSITION;
+                    }
+                    _has_init = true;
+                    success = true;
+                }
+            }
+        }
+        return success;
     }
 };
 

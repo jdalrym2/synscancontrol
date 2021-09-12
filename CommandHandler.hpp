@@ -1,8 +1,10 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
+//#define DEBUG
+
 #include <Arduino.h>
-#include <SoftwareSerial.h>
+#include <AltSoftSerial.h>
 
 #include "Motor.hpp"
 #include "Reply.hpp"
@@ -14,12 +16,13 @@
 class CommandHandler
 {
 public:
-    CommandHandler(SoftwareSerial *serial, HardwareSerial *serialOut, Motor *raMotor, Motor *decMotor);
+    CommandHandler(AltSoftSerial *serial, HardwareSerial *serialOut, Motor *raMotor, Motor *decMotor);
     void processSerial();
     void clearBuffer();
+    Motor *getMotorForAxis(AxisEnum axis);
 
 private:
-    SoftwareSerial *_serialIn;
+    AltSoftSerial *_serialIn;
     HardwareSerial *_serialOut;
     Motor *_raMotor;
     Motor *_decMotor;
@@ -32,7 +35,7 @@ private:
     Reply *_processCommand(Command *command);
 };
 
-CommandHandler::CommandHandler(SoftwareSerial *serialIn, HardwareSerial *serialOut,
+CommandHandler::CommandHandler(AltSoftSerial *serialIn, HardwareSerial *serialOut,
                                Motor *raMotor, Motor *decMotor)
 {
     _serialIn = serialIn;
@@ -46,6 +49,7 @@ void CommandHandler::processSerial()
     // TODO: does this take too long?
     while (_serialIn->available() > 0)
     {
+
         // Read in a character
         char inChar = _serialIn->read();
 
@@ -88,12 +92,18 @@ void CommandHandler::processSerial()
                 {
                     // TODO: debug only
                     Serial.println("Error parsing command!");
+                    Serial.println("===");
+                    Serial.println(_buffer);
+                    Serial.println("===");
                 }
             }
             else
             {
-                // TODO: debug only (when this is a failure condition)
-                Serial.println("Command factory returned nullptr! We probably just don't support the command yet.");
+                // TODO: debug only
+                Serial.println("Command factory returned nullptr!");
+                Serial.println("===");
+                Serial.println(_buffer);
+                Serial.println("===");
             }
 
             // We are done processing the command
@@ -122,141 +132,202 @@ void CommandHandler::clearBuffer()
     _buffer[0] = '\0';
 }
 
+Motor *CommandHandler::getMotorForAxis(AxisEnum axis)
+{
+    if (axis == AxisEnum::AXIS_DEC)
+    {
+        return _decMotor;
+    }
+    else
+    {
+        return _raMotor;
+    }
+}
+
 Reply *CommandHandler::_processCommand(Command *cmd)
 {
     Reply *reply = nullptr;
+    Motor *thisMotor = getMotorForAxis(cmd->getAxis());
 
     // Figure out which command we got, do the processing, and generate a reply
     switch (cmd->getCommand())
     {
     case CommandEnum::SET_POSITION_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         SetPositionCommand *thisCmd = (SetPositionCommand *)cmd;
 
         // Set motor position
-        if (thisCmd->getAxis() == AxisEnum::AXIS_RA)
+        if (!thisMotor->isMoving())
         {
-            _raMotor->setPosition(thisCmd->getPosition());
+            thisMotor->setPosition(thisCmd->getPosition());
+            reply = new EmptyReply();
         }
-        else if (thisCmd->getAxis() == AxisEnum::AXIS_DEC)
+        else
         {
-            _decMotor->setPosition(thisCmd->getPosition());
+            reply = new ErrorReply(ErrorEnum::MOTOR_NOT_STOPPED_ERROR);
         }
-
-        reply = new EmptyReply();
         break;
     }
     case CommandEnum::INITIALIZATION_DONE_CMD:
     {
         InitializationDoneCommand *thisCmd = (InitializationDoneCommand *)cmd;
-        // No processing to be done!
+        // No processing to be done atm
+        // This can change if we want to block commands until initalization is complete
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::SET_MOTION_MODE_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         SetMotionModeCommand *thisCmd = (SetMotionModeCommand *)cmd;
 
         // Set motor motion mode
-        if (thisCmd->getAxis() == AxisEnum::AXIS_RA)
+        if (!thisMotor->isMoving())
         {
-            _raMotor->setSlewType(thisCmd->getType());
-            _raMotor->setSlewSpeed(thisCmd->getSpeed());
-            _raMotor->setSlewDir(thisCmd->getDir());
-        }
-        else if (thisCmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            _decMotor->setSlewType(thisCmd->getType());
-            _decMotor->setSlewSpeed(thisCmd->getSpeed());
-            _decMotor->setSlewDir(thisCmd->getDir());
-        }
+            thisMotor->setSlewType(thisCmd->getType());
+            thisMotor->setSlewSpeed(thisCmd->getSpeed());
+            thisMotor->setSlewDir(thisCmd->getDir());
 
-        reply = new EmptyReply();
+#ifdef DEBUG
+            Serial.print("Setting slew type to: ");
+            Serial.println((int)thisCmd->getType());
+            Serial.print("Setting slew speed to: ");
+            Serial.println((int)thisCmd->getSpeed());
+            Serial.print("Setting slew dir to: ");
+            Serial.println((int)thisCmd->getDir());
+#endif
+
+            reply = new EmptyReply();
+        }
+        else
+        {
+            reply = new ErrorReply(ErrorEnum::MOTOR_NOT_STOPPED_ERROR);
+        }
         break;
     }
     case CommandEnum::SET_GOTO_TARGET_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         SetGotoTargetCommand *thisCmd = (SetGotoTargetCommand *)cmd;
-        if (thisCmd->getAxis() == AxisEnum::AXIS_RA)
-        {
-            _raMotor->setOrigPosition(_raMotor->getPosition());
-            _raMotor->setTargetPosition(thisCmd->getPosition());
-        }
-        else if (thisCmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            _decMotor->setOrigPosition(_decMotor->getPosition());
-            _decMotor->setTargetPosition(thisCmd->getPosition());
-        }
 
-        reply = new EmptyReply();
+        // Set GOTO target position
+        if (!thisMotor->isMoving())
+        {
+            thisMotor->setOrigPosition(thisMotor->getPosition());
+            thisMotor->setTargetPosition(thisCmd->getPosition());
+            reply = new EmptyReply();
+        }
+        else
+        {
+            reply = new ErrorReply(ErrorEnum::MOTOR_NOT_STOPPED_ERROR);
+        }
         break;
     }
     case CommandEnum::SET_GOTO_TARGET_INCREMENT_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         SetGotoTargetIncrementCommand *thisCmd = (SetGotoTargetIncrementCommand *)cmd;
-        if (thisCmd->getAxis() == AxisEnum::AXIS_RA)
+        if (!thisMotor->isMoving())
         {
             uint32_t curPosition = _raMotor->getPosition();
             uint32_t increment = thisCmd->getIncrement();
-            _raMotor->setOrigPosition(curPosition);
-            if (_raMotor->getSlewDirection() == SlewDirectionEnum::CW)
+            thisMotor->setOrigPosition(curPosition);
+            if (thisMotor->getSlewDirection() == SlewDirectionEnum::CW)
             {
-                _raMotor->setTargetPosition(curPosition + increment);
+                thisMotor->setTargetPosition(curPosition + increment);
             }
             else
             {
-                _raMotor->setTargetPosition(curPosition - increment);
+                thisMotor->setTargetPosition(curPosition - increment);
             }
+            reply = new EmptyReply();
         }
-        else if (thisCmd->getAxis() == AxisEnum::AXIS_DEC)
+        else
         {
-            uint32_t curPosition = _decMotor->getPosition();
-            uint32_t increment = thisCmd->getIncrement();
-            _decMotor->setOrigPosition(curPosition);
-            if (_decMotor->getSlewDirection() == SlewDirectionEnum::CW)
-            {
-                _decMotor->setTargetPosition(curPosition + increment);
-            }
-            else
-            {
-                _decMotor->setTargetPosition(curPosition - increment);
-            }
+            reply = new ErrorReply(ErrorEnum::MOTOR_NOT_STOPPED_ERROR);
         }
-
-        reply = new EmptyReply();
         break;
     }
     case CommandEnum::SET_STEP_PERIOD_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         SetStepPeriodCommand *thisCmd = (SetStepPeriodCommand *)cmd;
-        if (thisCmd->getAxis() == AxisEnum::AXIS_RA)
-        {
-            _raMotor->setStepPeriod(thisCmd->getPeriod());
-        }
-        else if (thisCmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            _decMotor->setStepPeriod(thisCmd->getPeriod());
-        }
-
+#ifdef DEBUG
+        Serial.print("Setting step period to: ");
+        Serial.println(thisCmd->getPeriod());
+#endif
+        thisMotor->setStepPeriod(thisCmd->getPeriod());
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::START_MOTION_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         StartMotionCommand *thisCmd = (StartMotionCommand *)cmd;
-        reply = new EmptyReply();
+        if (!thisMotor->isMoving())
+        {
+            thisMotor->setMotion(true);
+            reply = new EmptyReply();
+        }
+        else if (thisMotor->getSlewSpeed() == SlewSpeedEnum::NONE)
+        {
+            reply = new ErrorReply(ErrorEnum::NOT_INITIALIZED_ERROR);
+        }
+        else
+        {
+            reply = new ErrorReply(ErrorEnum::MOTOR_NOT_STOPPED_ERROR);
+        }
         break;
     }
     case CommandEnum::STOP_MOTION_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         StopMotionCommand *thisCmd = (StopMotionCommand *)cmd;
+        if (thisMotor->isMoving())
+        {
+            thisMotor->setMotion(false);
+        }
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::INSTANT_STOP_CMD:
     {
+        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
+        {
+            reply = new EmptyReply();
+            break;
+        }
         InstantStopCommand *thisCmd = (InstantStopCommand *)cmd;
-        thisCmd->parse(_buffer, _buffer_idx);
+        // TODO
         reply = new EmptyReply();
         break;
     }
@@ -285,17 +356,15 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         GetCountsPerRevCommand *thisCmd = (GetCountsPerRevCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        // TODO: replace with actual counts per revolution
-        data_reply->setData(1000, 6);
+        data_reply->setData(thisMotor->MICROSTEPS_PER_REV, 6);
         reply = data_reply;
         break;
     }
     case CommandEnum::GET_TIMER_FREQ_CMD:
     {
         GetTimerFreqCommand *thisCmd = (GetTimerFreqCommand *)cmd;
-        // TODO: understand this better
         DataReply *data_reply = new DataReply();
-        data_reply->setData(50000, 6);
+        data_reply->setData(thisMotor->MAX_PULSE_PER_SECOND, 6);
         reply = data_reply;
         break;
     }
@@ -303,17 +372,15 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         GetGotoTargetPositionCommand *thisCmd = (GetGotoTargetPositionCommand *)cmd;
         PositionReply *position_reply = new PositionReply();
-        // TODO: replace with motor goto target for this axis
-        position_reply->setData(0x800000, 6);
+        position_reply->setData(thisMotor->getTargetPosition(), 6);
         reply = position_reply;
         break;
     }
     case CommandEnum::GET_STEP_PERIOD_CMD:
     {
         GetStepPeriodCommand *thisCmd = (GetStepPeriodCommand *)cmd;
-        // TODO: replace with motor step period for this axis
         DataReply *data_reply = new DataReply();
-        data_reply->setData(1, 6);
+        data_reply->setData(thisMotor->getSpeed(), 6);
         reply = data_reply;
         break;
     }
@@ -321,8 +388,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         GetPositionCommand *thisCmd = (GetPositionCommand *)cmd;
         PositionReply *position_reply = new PositionReply();
-        // TODO: set with actual position for this motor
-        position_reply->setData(0x800000, 6);
+        position_reply->setData(thisMotor->getPosition(), 6);
         reply = position_reply;
         break;
     }
@@ -337,10 +403,10 @@ Reply *CommandHandler::_processCommand(Command *cmd)
         status_reply->setBlocked(false);
 
         // TODO: replace with motor state variables for this axis
-        status_reply->setRunning(false);
-        status_reply->setSlewMode(SlewTypeEnum::TRACKING);
-        status_reply->setSpeedMode(SlewSpeedEnum::SLOW);
-        status_reply->setDirection(SlewDirectionEnum::CW);
+        status_reply->setRunning(thisMotor->isMoving());
+        status_reply->setSlewMode(thisMotor->getSlewType());
+        status_reply->setSpeedMode(thisMotor->getSlewSpeed());
+        status_reply->setDirection(thisMotor->getSlewDirection());
         reply = status_reply;
         break;
     }
@@ -348,8 +414,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         GetHighSpeedRatioCommand *thisCmd = (GetHighSpeedRatioCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        // TODO: make this a define / configurable somewhere
-        data_reply->setData(2, 2);
+        data_reply->setData(thisMotor->HIGH_SPEED_RATIO, 2);
         reply = data_reply;
         break;
     }
@@ -357,8 +422,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         GetSiderealPeriodCommand *thisCmd = (GetSiderealPeriodCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        // TODO: replace with motor sidereal period for this axis
-        data_reply->setData(1000, 6);
+        data_reply->setData(thisMotor->SIDEREAL_PULSE_PER_SECOND, 6);
         reply = data_reply;
         break;
     }
@@ -366,8 +430,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         GetAxisPositionCommand *thisCmd = (GetAxisPositionCommand *)cmd;
         PositionReply *position_reply = new PositionReply();
-        // TODO: replace with actual motor position for this axis
-        position_reply->setData(0x800000, 6);
+        position_reply->setData(thisMotor->getPosition(), 6);
         reply = position_reply;
         break;
     }
@@ -383,7 +446,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     case CommandEnum::GET_PEC_PERIOD_CMD:
     {
         GetPECPeriodCommand *thisCmd = (GetPECPeriodCommand *)cmd;
-        // TODO: replace with motor PEC period
+        // TODO: replace with motor PEC period, if this is something we will do
         DataReply *data_reply = new DataReply();
         data_reply->setData(0, 6);
         reply = data_reply;
