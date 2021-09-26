@@ -3,11 +3,11 @@
 
 //#define DEBUG
 
-#define INFINITE 0xFFFFFF
 #define ARCSEC_TO_DEGREE 0.000277778f
 #define SIDEREAL_SPEED_ARCSEC 15.04108444f
 
 #include <stdint.h>
+#include <limits.h>
 #include <AccelStepper.h>
 
 #include "Enums.hpp"
@@ -20,12 +20,27 @@ public:
     static const uint32_t HIGH_SPEED_RATIO = SLOW_MICROSTEPS / FAST_MICROSTEPS;
     static const uint32_t FULL_STEPS_PER_REV = 141000;
     static const uint32_t MICROSTEPS_PER_REV = SLOW_MICROSTEPS * FULL_STEPS_PER_REV;
-    static const uint32_t MAX_PULSE_PER_SECOND = 1500;
+    static const uint32_t MAX_PULSE_PER_SECOND = 5000;
     static constexpr float MOTOR_ACCEL = 1250.0;
-    static constexpr float SIDEREAL_PULSE_PER_SECOND = (float)MICROSTEPS_PER_REV / 360.0 * ARCSEC_TO_DEGREE * SIDEREAL_SPEED_ARCSEC;
+    static constexpr float SIDEREAL_STEP_PER_SECOND = (float)MICROSTEPS_PER_REV / 360.0 * ARCSEC_TO_DEGREE * SIDEREAL_SPEED_ARCSEC;
+    static constexpr float SIDEREAL_PULSE_PER_STEP = MAX_PULSE_PER_SECOND / SIDEREAL_STEP_PER_SECOND;
+
+    // Note we only have 24 bits to store position given the Synscan protocol
+    // Note that this position and Accelstepper positions may be different,
+    // based on whether or not we are doing slow or fast microstepping
+    static const uint32_t MID_POSITION = 0x800000;
+    static const uint32_t POSITION_INFINITE = 0xFFFFFF;
+    static const uint32_t POSITION_NINFINITE = 0x000000;
+    static const uint32_t MAX_POSITION = MID_POSITION + MICROSTEPS_PER_REV / 2;
+    static const uint32_t MIN_POSITION = MID_POSITION - MICROSTEPS_PER_REV / 2;
+
+    static const long STEPPER_MID_POSITION = 0;
+    static const long STEPPER_INFINITE = std::numeric_limits<long>::max() / 2;
+    static const long STEPPER_NINFINITE = std::numeric_limits<long>::min() / 2;
 
     Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR);
 
+    void begin();
     uint32_t getPosition() const;
     uint32_t getTargetPosition() const;
     float getSpeed();
@@ -35,17 +50,22 @@ public:
     bool isMoving() const;
 
     void setPosition(uint32_t position);
-    void setOrigPosition(uint32_t position);
+    void setStepperPosition(long position);
     void setTargetPosition(uint32_t position);
+    void setStepperTargetPosition(long position);
     void setStepPeriod(uint32_t stepPeriod);
     void setSlewType(SlewTypeEnum type);
     void setSlewSpeed(SlewSpeedEnum type);
     void setSlewDir(SlewDirectionEnum type);
-    void setMicrosteps(uint8_t s);
     void setMotion(bool moving);
+    void setMicrosteps(uint8_t s);
 
     void tick();
     void longTick();
+
+private:
+    long _computeStepperPosition(uint32_t currentPosition);
+    uint32_t _computePosition(long stepperPosition);
 
 private:
     AxisEnum _axis;
@@ -58,9 +78,10 @@ private:
     AccelStepper _stepper;
 
     uint32_t _pecPeriod = 0;
-    uint32_t _position = 0x800000; // middle of range
-    uint32_t _originalPosition = INFINITE;
-    uint32_t _targetPosition = INFINITE;
+    uint32_t _position = MID_POSITION;
+    int32_t _stepperPosition = STEPPER_MID_POSITION;
+    uint32_t _targetPosition = POSITION_INFINITE;
+    int32_t _stepperTargetPosition = STEPPER_INFINITE;
     uint32_t _stepPeriod = 0;
     bool _moving = false;
     bool _toStop = false;

@@ -107,6 +107,19 @@ public:
     uint32_t getIncrement() const;
 };
 
+class SetBreakPointIncrementCommand : public Command
+{
+private:
+    static const uint16_t MSG_SIZE = 9;
+    uint32_t _increment = 0;
+
+public:
+    SetBreakPointIncrementCommand();
+
+    bool parse(const char *data, uint16_t len) override;
+    uint32_t getIncrement() const;
+};
+
 class SetStepPeriodCommand : public Command
 {
 private:

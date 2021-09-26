@@ -44,8 +44,9 @@ void CommandHandler::processSerial()
                     }
                     else
                     {
-                        // TODO: debug only
+#ifdef DEBUG
                         Serial.println("Failed to come up with a reply!");
+#endif
                     }
 
                     // We are done processing the reply
@@ -53,20 +54,22 @@ void CommandHandler::processSerial()
                 }
                 else
                 {
-                    // TODO: debug only
+#ifdef DEBUG
                     Serial.println("Error parsing command!");
                     Serial.println("===");
                     Serial.println(_buffer);
                     Serial.println("===");
+#endif
                 }
             }
             else
             {
-                // TODO: debug only
+#ifdef DEBUG
                 Serial.println("Command factory returned nullptr!");
                 Serial.println("===");
                 Serial.println(_buffer);
                 Serial.println("===");
+#endif
             }
 
             // We are done processing the command
@@ -138,7 +141,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::INITIALIZATION_DONE_CMD:
     {
-        InitializationDoneCommand *thisCmd = (InitializationDoneCommand *)cmd;
+        // InitializationDoneCommand *thisCmd = (InitializationDoneCommand *)cmd;
         // No processing to be done atm
         // This can change if we want to block commands until initalization is complete
         reply = new EmptyReply();
@@ -159,16 +162,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
             thisMotor->setSlewType(thisCmd->getType());
             thisMotor->setSlewSpeed(thisCmd->getSpeed());
             thisMotor->setSlewDir(thisCmd->getDir());
-
-#ifdef DEBUG
-            Serial.print("Setting slew type to: ");
-            Serial.println((int)thisCmd->getType());
-            Serial.print("Setting slew speed to: ");
-            Serial.println((int)thisCmd->getSpeed());
-            Serial.print("Setting slew dir to: ");
-            Serial.println((int)thisCmd->getDir());
-#endif
-
             reply = new EmptyReply();
         }
         else
@@ -189,7 +182,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
         // Set GOTO target position
         if (!thisMotor->isMoving())
         {
-            thisMotor->setOrigPosition(thisMotor->getPosition());
             thisMotor->setTargetPosition(thisCmd->getPosition());
             reply = new EmptyReply();
         }
@@ -209,9 +201,8 @@ Reply *CommandHandler::_processCommand(Command *cmd)
         SetGotoTargetIncrementCommand *thisCmd = (SetGotoTargetIncrementCommand *)cmd;
         if (!thisMotor->isMoving())
         {
-            uint32_t curPosition = _raMotor->getPosition();
+            uint32_t curPosition = thisMotor->getPosition();
             uint32_t increment = thisCmd->getIncrement();
-            thisMotor->setOrigPosition(curPosition);
             if (thisMotor->getSlewDirection() == SlewDirectionEnum::CW)
             {
                 thisMotor->setTargetPosition(curPosition + increment);
@@ -228,6 +219,12 @@ Reply *CommandHandler::_processCommand(Command *cmd)
         }
         break;
     }
+    case CommandEnum::SET_BREAKPOINT_INCREMENT_CMD:
+    {
+        // SetBreakPointIncrementCommand *thisCmd = (SetBreakPointIncrementCommand *)cmd;
+        reply = new EmptyReply();
+        break;
+    }
     case CommandEnum::SET_STEP_PERIOD_CMD:
     {
         if (cmd->getAxis() == AxisEnum::AXIS_DEC)
@@ -236,10 +233,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
             break;
         }
         SetStepPeriodCommand *thisCmd = (SetStepPeriodCommand *)cmd;
-#ifdef DEBUG
-        Serial.print("Setting step period to: ");
-        Serial.println(thisCmd->getPeriod());
-#endif
         thisMotor->setStepPeriod(thisCmd->getPeriod());
         reply = new EmptyReply();
         break;
@@ -251,7 +244,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
             reply = new EmptyReply();
             break;
         }
-        StartMotionCommand *thisCmd = (StartMotionCommand *)cmd;
+        // StartMotionCommand *thisCmd = (StartMotionCommand *)cmd;
         if (!thisMotor->isMoving())
         {
             thisMotor->setMotion(true);
@@ -274,7 +267,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
             reply = new EmptyReply();
             break;
         }
-        StopMotionCommand *thisCmd = (StopMotionCommand *)cmd;
+        // StopMotionCommand *thisCmd = (StopMotionCommand *)cmd;
         if (thisMotor->isMoving())
         {
             thisMotor->setMotion(false);
@@ -289,35 +282,35 @@ Reply *CommandHandler::_processCommand(Command *cmd)
             reply = new EmptyReply();
             break;
         }
-        InstantStopCommand *thisCmd = (InstantStopCommand *)cmd;
+        // InstantStopCommand *thisCmd = (InstantStopCommand *)cmd;
         // TODO
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::SET_SWITCH_CMD:
     {
-        SetSwitchCommand *thisCmd = (SetSwitchCommand *)cmd;
+        // SetSwitchCommand *thisCmd = (SetSwitchCommand *)cmd;
         // Not supported, do not process
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::SET_AUTOGUIDE_SPEED_CMD:
     {
-        SetAudioguideSpeedCommand *thisCmd = (SetAudioguideSpeedCommand *)cmd;
+        // SetAudioguideSpeedCommand *thisCmd = (SetAudioguideSpeedCommand *)cmd;
         // TODO: if we want
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::SET_POLAR_LED_BRIGHTNESS_CMD:
     {
-        SetPolarLEDBrightnessCommand *thisCmd = (SetPolarLEDBrightnessCommand *)cmd;
+        // SetPolarLEDBrightnessCommand *thisCmd = (SetPolarLEDBrightnessCommand *)cmd;
         // TODO: if we want
         reply = new EmptyReply();
         break;
     }
     case CommandEnum::GET_COUNTS_PER_REV_CMD:
     {
-        GetCountsPerRevCommand *thisCmd = (GetCountsPerRevCommand *)cmd;
+        // GetCountsPerRevCommand *thisCmd = (GetCountsPerRevCommand *)cmd;
         DataReply *data_reply = new DataReply();
         data_reply->setData(thisMotor->MICROSTEPS_PER_REV, 6);
         reply = data_reply;
@@ -325,7 +318,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_TIMER_FREQ_CMD:
     {
-        GetTimerFreqCommand *thisCmd = (GetTimerFreqCommand *)cmd;
+        // GetTimerFreqCommand *thisCmd = (GetTimerFreqCommand *)cmd;
         DataReply *data_reply = new DataReply();
         data_reply->setData(thisMotor->MAX_PULSE_PER_SECOND, 6);
         reply = data_reply;
@@ -333,7 +326,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_GOTO_TARGET_CMD:
     {
-        GetGotoTargetPositionCommand *thisCmd = (GetGotoTargetPositionCommand *)cmd;
+        // GetGotoTargetPositionCommand *thisCmd = (GetGotoTargetPositionCommand *)cmd;
         PositionReply *position_reply = new PositionReply();
         position_reply->setData(thisMotor->getTargetPosition(), 6);
         reply = position_reply;
@@ -341,7 +334,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_STEP_PERIOD_CMD:
     {
-        GetStepPeriodCommand *thisCmd = (GetStepPeriodCommand *)cmd;
+        // GetStepPeriodCommand *thisCmd = (GetStepPeriodCommand *)cmd;
         DataReply *data_reply = new DataReply();
         data_reply->setData(thisMotor->getSpeed(), 6);
         reply = data_reply;
@@ -349,7 +342,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_POSITION_CMD:
     {
-        GetPositionCommand *thisCmd = (GetPositionCommand *)cmd;
+        // GetPositionCommand *thisCmd = (GetPositionCommand *)cmd;
         PositionReply *position_reply = new PositionReply();
         position_reply->setData(thisMotor->getPosition(), 6);
         reply = position_reply;
@@ -357,7 +350,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_STATUS_CMD:
     {
-        GetStatusCommand *thisCmd = (GetStatusCommand *)cmd;
+        // GetStatusCommand *thisCmd = (GetStatusCommand *)cmd;
 
         StatusReply *status_reply = new StatusReply();
 
@@ -375,7 +368,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_HIGH_SPEED_RATIO_CMD:
     {
-        GetHighSpeedRatioCommand *thisCmd = (GetHighSpeedRatioCommand *)cmd;
+        // GetHighSpeedRatioCommand *thisCmd = (GetHighSpeedRatioCommand *)cmd;
         DataReply *data_reply = new DataReply();
         data_reply->setData(thisMotor->HIGH_SPEED_RATIO, 2);
         reply = data_reply;
@@ -383,15 +376,15 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_SIDEREAL_PERIOD_CMD:
     {
-        GetSiderealPeriodCommand *thisCmd = (GetSiderealPeriodCommand *)cmd;
+        // GetSiderealPeriodCommand *thisCmd = (GetSiderealPeriodCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->SIDEREAL_PULSE_PER_SECOND, 6);
+        data_reply->setData(thisMotor->SIDEREAL_PULSE_PER_STEP, 6);
         reply = data_reply;
         break;
     }
     case CommandEnum::GET_AXIS_POSITION_CMD:
     {
-        GetAxisPositionCommand *thisCmd = (GetAxisPositionCommand *)cmd;
+        // GetAxisPositionCommand *thisCmd = (GetAxisPositionCommand *)cmd;
         PositionReply *position_reply = new PositionReply();
         position_reply->setData(thisMotor->getPosition(), 6);
         reply = position_reply;
@@ -399,7 +392,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_VERSION_CMD:
     {
-        GetVersionCommand *thisCmd = (GetVersionCommand *)cmd;
+        // GetVersionCommand *thisCmd = (GetVersionCommand *)cmd;
         VersionReply *version_reply = new VersionReply();
         // TODO: make these constants elsewhere?
         version_reply->setVersion(2, 0, 5, 1);
@@ -408,7 +401,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_PEC_PERIOD_CMD:
     {
-        GetPECPeriodCommand *thisCmd = (GetPECPeriodCommand *)cmd;
+        // GetPECPeriodCommand *thisCmd = (GetPECPeriodCommand *)cmd;
         // TODO: replace with motor PEC period, if this is something we will do
         DataReply *data_reply = new DataReply();
         data_reply->setData(0, 6);
@@ -417,7 +410,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::GET_EXTENDED_STATUS_CMD:
     {
-        GetExtendedStatusCommand *thisCmd = (GetExtendedStatusCommand *)cmd;
+        // GetExtendedStatusCommand *thisCmd = (GetExtendedStatusCommand *)cmd;
 
         // TODO: check if we are getting the correct extended status request
         ExtendedStatusReply *ex_status_reply = new ExtendedStatusReply();

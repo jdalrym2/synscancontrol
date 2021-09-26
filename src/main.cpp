@@ -10,8 +10,8 @@
 #define RA_STEP 25
 #define RA_DIR 26
 
-#define SERIAL1_RX 16
-#define SERIAL1_TX 17
+#define SERIAL2_RX 16
+#define SERIAL2_TX 17
 
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR);
 //Motor decMotor(AxisEnum::AXIS_DEC);
@@ -21,9 +21,20 @@ unsigned long longTickTimer;
 
 void setup()
 {
+    setCpuFrequencyMhz(240);
+    pinMode(RA_M0, OUTPUT);
+    pinMode(RA_M1, OUTPUT);
+    pinMode(RA_M2, OUTPUT);
+    pinMode(RA_STEP, OUTPUT);
+    pinMode(RA_DIR, OUTPUT);
+
+    raMotor.begin();
+
     Serial.begin(9600);
-    Serial2.begin(9600, SERIAL_8N1, SERIAL1_RX, SERIAL1_TX);
+    Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
     longTickTimer = millis();
+
+    Serial.println("Woohoo!");
 }
 
 void loop()

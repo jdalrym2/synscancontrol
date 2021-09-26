@@ -248,6 +248,36 @@ uint32_t SetGotoTargetIncrementCommand::getIncrement() const
     return _increment;
 }
 
+SetBreakPointIncrementCommand::SetBreakPointIncrementCommand()
+{
+    _cmd = CommandEnum::SET_BREAKPOINT_INCREMENT_CMD;
+}
+
+bool SetBreakPointIncrementCommand::parse(const char *data, uint16_t len)
+{
+    bool success = false;
+    if (len == MSG_SIZE)
+    {
+        if (data[0] == ':')
+        {
+            char header = data[1];
+            if (header == (char)_cmd)
+            {
+                _axis = parseAxis(data[2]);
+                _increment = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                _has_init = true;
+                success = true;
+            }
+        }
+    }
+    return success;
+}
+
+uint32_t SetBreakPointIncrementCommand::getIncrement() const
+{
+    return _increment;
+}
+
 SetStepPeriodCommand::SetStepPeriodCommand()
 {
     _cmd = CommandEnum::SET_STEP_PERIOD_CMD;
@@ -569,6 +599,11 @@ Command *CommandFactory::parse(const char *data, uint16_t len)
     case (char)CommandEnum::SET_GOTO_TARGET_INCREMENT_CMD:
     {
         cmd = new SetGotoTargetIncrementCommand();
+        break;
+    }
+    case (char)CommandEnum::SET_BREAKPOINT_INCREMENT_CMD:
+    {
+        cmd = new SetBreakPointIncrementCommand();
         break;
     }
     case (char)CommandEnum::SET_STEP_PERIOD_CMD:
