@@ -33,8 +33,6 @@ void setup()
     Serial.begin(9600);
     Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
     longTickTimer = millis();
-
-    Serial.println("Woohoo!");
 }
 
 void loop()
