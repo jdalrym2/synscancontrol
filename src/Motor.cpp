@@ -1,8 +1,9 @@
+#include <Arduino.h>
+#include <sstream>
+
 #include "Motor.hpp"
 
-#include <Arduino.h>
-
-Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR)
+Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, Logger *logger)
 {
     _axis = axis;
     _M0 = M0;
@@ -11,6 +12,7 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
     _STEP = STEP;
     _DIR = DIR;
     _stepper = AccelStepper(AccelStepper::DRIVER, STEP, DIR);
+    _logger = logger;
 }
 
 void Motor::begin()
@@ -61,20 +63,12 @@ void Motor::setPosition(uint32_t position)
 {
     _position = position;
     _stepperPosition = _computeStepperPosition(_position);
-#ifdef DEBUG
-    //Serial.print("Setting current position (reference): ");
-    //Serial.println(position);
-#endif
 }
 
 void Motor::setStepperPosition(long position)
 {
     _position = _computePosition(position);
     _stepperPosition = position;
-#ifdef DEBUG
-    //Serial.print("Setting current position (stepper): ");
-    //Serial.println(_position);
-#endif
 }
 
 void Motor::setTargetPosition(uint32_t position)
@@ -83,12 +77,9 @@ void Motor::setTargetPosition(uint32_t position)
     _stepperTargetPosition = _computeStepperPosition(position);
     _stepper.moveTo(_stepperTargetPosition);
 
-#ifdef DEBUG
-    Serial.print("Setting target position (reference) to: 0x");
-    Serial.print(_targetPosition, HEX);
-    Serial.print(", ");
-    Serial.println(_stepperTargetPosition);
-#endif
+    std::ostringstream log;
+    log << "Setting target position (reference) to: 0x" << std::hex << _targetPosition << ", " << _stepperTargetPosition;
+    _logger->debug(&log);
 }
 
 void Motor::setStepperTargetPosition(long position)
@@ -97,20 +88,20 @@ void Motor::setStepperTargetPosition(long position)
     _stepperTargetPosition = position;
     _stepper.moveTo(_stepperTargetPosition);
 
-#ifdef DEBUG
-    Serial.print("Setting target position (stepper) to: 0x");
-    Serial.print(_targetPosition, HEX);
-    Serial.print(", ");
-    Serial.println(_stepperTargetPosition);
-#endif
+    // Debug
+    std::ostringstream log;
+    log << "Setting target position (stepper) to: 0x" << std::hex << _targetPosition << ", " << _stepperTargetPosition;
+    _logger->debug(&log);
 }
 
 void Motor::setStepPeriod(uint32_t stepPeriod)
 {
-#ifdef DEBUG
-    Serial.print("Setting step period to: ");
-    Serial.println(stepPeriod);
-#endif
+
+    // Debug
+    std::ostringstream log;
+    log << "Setting step period to: " << stepPeriod;
+    _logger->debug(&log);
+
     _stepPeriod = stepPeriod;
     float speed = (stepPeriod > 0) ? (float)MAX_PULSE_PER_SECOND / stepPeriod : MAX_PULSE_PER_SECOND;
     _stepper.setMaxSpeed(speed);
@@ -120,15 +111,16 @@ void Motor::setSlewType(SlewTypeEnum type)
 {
     _type = type;
 
-#ifdef DEBUG
-    Serial.print("Setting slew type to: ");
+    // Debug
+    std::ostringstream log;
+    log << "Setting slew type to: ";
     if (type == SlewTypeEnum::GOTO)
-        Serial.println("GOTO");
+        log << "GOTO";
     else if (type == SlewTypeEnum::TRACKING)
-        Serial.println("TRACKING");
+        log << "TRACKING";
     else if (type == SlewTypeEnum::NONE)
-        Serial.println("NONE");
-#endif
+        log << "NONE";
+    _logger->debug(&log);
 }
 
 void Motor::setSlewSpeed(SlewSpeedEnum speed)
@@ -140,30 +132,32 @@ void Motor::setSlewSpeed(SlewSpeedEnum speed)
 
     _speed = speed;
 
-#ifdef DEBUG
-    Serial.print("Setting slew speed to: ");
+    // Debug
+    std::ostringstream log;
+    log << "Setting slew speed to: ";
     if (speed == SlewSpeedEnum::FAST)
-        Serial.println("FAST");
+        log << "FAST";
     else if (speed == SlewSpeedEnum::SLOW)
-        Serial.println("SLOW");
+        log << "SLOW";
     else if (speed == SlewSpeedEnum::NONE)
-        Serial.println("NONE");
-#endif
+        log << "NONE";
+    _logger->debug(&log);
 }
 
 void Motor::setSlewDir(SlewDirectionEnum dir)
 {
     _dir = dir;
 
-#ifdef DEBUG
-    Serial.print("Setting slew direction to: ");
+    // Debug
+    std::ostringstream log;
+    log << "Setting slew direction to: ";
     if (dir == SlewDirectionEnum::CCW)
-        Serial.println("CCW");
+        log << "CCW";
     else if (dir == SlewDirectionEnum::CW)
-        Serial.println("CW");
+        log << "CW";
     else if (dir == SlewDirectionEnum::NONE)
-        Serial.println("NONE");
-#endif
+        log << "NONE";
+    _logger->debug(&log);
 }
 
 void Motor::setMotion(bool moving)
@@ -191,12 +185,11 @@ void Motor::setMotion(bool moving)
         if (stepsToStop != 0)
             stepsToStop -= 1; // I think
 
-#ifdef DEBUG
-        Serial.print("About to stop! ");
-        Serial.print(_stepper.speed());
-        Serial.print(", ");
-        Serial.println(stepsToStop);
-#endif
+        // Debug
+        std::ostringstream log;
+        log << "About to stop!" << _stepper.speed() << ", " << stepsToStop;
+        _logger->debug(&log);
+
         if (getSlewDirection() == SlewDirectionEnum::CCW)
         {
             setStepperTargetPosition(_stepper.currentPosition() + stepsToStop);
@@ -263,27 +256,25 @@ void Motor::longTick()
     // Sync stepper position with Accelstepper
     setStepperPosition(_stepper.currentPosition());
 
+    // Debug
+    std::ostringstream log;
+    log << "STGT: " << _stepper.targetPosition() << ";";
+    log << " DTG: " << _stepper.distanceToGo() << ";";
+    log << " SPOS: " << _stepper.currentPosition() << ";";
+    log << " POS: " << getPosition() << ";";
+    _logger->debug(&log);
+
     if (_moving)
     {
-        if (getSlewType() == SlewTypeEnum::TRACKING and !_toStop)
+        if (getSlewType() == SlewTypeEnum::TRACKING && !_toStop)
         {
         }
-#ifdef DEBUG
-        /*Serial.print("STGT: ");
-        Serial.print(_stepper.targetPosition());
-        Serial.print("; DTG: ");
-        Serial.print(_stepper.distanceToGo());
-        Serial.print("; SPOS: ");
-        Serial.print(_stepper.currentPosition());
-        Serial.print("; POS: ");
-        Serial.println(getPosition());*/
-#endif
-    }
 
-    if (_toStop && _stepper.distanceToGo() == 0)
-    {
-        _toStop = false;
-        _moving = false;
+        if (_toStop && _stepper.distanceToGo() == 0)
+        {
+            _toStop = false;
+            _moving = false;
+        }
     }
 }
 

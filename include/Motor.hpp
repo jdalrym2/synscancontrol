@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <AccelStepper.h>
-
+#include "Logger.hpp"
 #include "Enums.hpp"
 
 class Motor
@@ -38,7 +38,7 @@ public:
     static const long STEPPER_INFINITE = std::numeric_limits<long>::max() / 2;
     static const long STEPPER_NINFINITE = std::numeric_limits<long>::min() / 2;
 
-    Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR);
+    Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, Logger *logger);
 
     void begin();
     uint32_t getPosition() const;
@@ -74,6 +74,8 @@ private:
     uint8_t _M2;
     uint8_t _STEP;
     uint8_t _DIR;
+
+    Logger *_logger;
 
     AccelStepper _stepper;
 
