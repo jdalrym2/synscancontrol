@@ -63,13 +63,18 @@ AsyncUDP udp;
 // Hardware timers
 hw_timer_t *tickTimer = nullptr;
 
+// Software timers
+unsigned long longTickTimer = 0;
+
+// Logger
 Logger logger;
 
+// Motors
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, &logger);
 Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, &logger);
-CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger); // TODO: change second motor to DEC
 
-unsigned long led_timer;
+// Serial Command handler
+CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger);
 
 // Motor fast tick (hardware interrupt)
 void tick()
@@ -115,6 +120,11 @@ void setup()
     ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
     ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
 
+    // Static brightness for now
+    // We can do way cooler things to show status, etc, later
+    ledcWrite(PWR_LED_PWM, 255);
+    ledcWrite(SCOPE_LED_PWM, 64);
+
     // Setup motor tick timers
     tickTimer = timerBegin(0, 80, true);
     timerAttachInterrupt(tickTimer, &tick, true);
@@ -130,7 +140,7 @@ void setup()
     raMotor.begin();
 
     // Setup slow timer
-    led_timer = millis();
+    longTickTimer = millis();
 
     // Configure logger
     logger.addHardwareSerialHandler(&Serial);
@@ -193,33 +203,16 @@ void setup()
     logger.debug("Logging started!");
 }
 
-bool toggle = false;
-
 void loop()
 {
-
     // Process serial port
     cmdHandler.processSerial();
 
-    // Process slow timer
-    if (millis() - led_timer > 100)
+    // Process slow (long tick) timer
+    if (millis() - longTickTimer > 100)
     {
-        led_timer = millis();
-
+        longTickTimer = millis();
         longTick();
-
-        if (toggle)
-        {
-            ledcWrite(0, 255);
-            ledcWrite(1, 255);
-        }
-        else
-        {
-            ledcWrite(0, 0);
-            ledcWrite(1, 0);
-        }
-
-        toggle = !toggle;
     }
 
 #ifdef OTA_UPDATES
