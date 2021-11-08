@@ -11,9 +11,13 @@ CommandHandler::CommandHandler(HardwareSerial *commSerial,
 
 void CommandHandler::processSerial()
 {
-    // TODO: does this take too long?
+    // Process available serial
     while (_commSerial->available() > 0)
     {
+        // We are processing serial!
+        _serialStarted = true;
+        _timeoutCounter = millis();
+
         // Read in a character
         char inChar = _commSerial->read();
 
@@ -45,12 +49,9 @@ void CommandHandler::processSerial()
                     Reply *reply = _processCommand(cmd);
 
                     // Send the reply
-                    // TODO: this probably takes too long
-                    // create a Serial output buffer and send when available
                     if (reply)
                     {
                         // Log the reply we are giving
-                        // TODO: remove
                         /*std::ostringstream log;
                         log << "Sending reply: ";
                         reply->toStringStream(&log);
@@ -98,6 +99,15 @@ void CommandHandler::processSerial()
                 _buffer[_buffer_idx] = '\0';
             }
         }
+    }
+
+    // Serial timeout handling
+    if (_serialStarted && (millis() - _timeoutCounter > _timeoutMillis))
+    {
+        _logger->info("Serial timeout reached!");
+        _serialStarted = false;
+        _raMotor->setMotion(false);
+        _decMotor->setMotion(false);
     }
 }
 

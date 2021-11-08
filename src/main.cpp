@@ -71,12 +71,14 @@ CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger); // TODO: chan
 
 unsigned long led_timer;
 
+// Motor fast tick (hardware interrupt)
 void tick()
 {
     decMotor.tick();
     raMotor.tick();
 }
 
+// Motor slow tick (loop)
 void longTick()
 {
 
@@ -113,19 +115,24 @@ void setup()
     ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
     ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
 
-    decMotor.begin();
-    raMotor.begin();
-
     // Setup motor tick timers
     tickTimer = timerBegin(0, 80, true);
     timerAttachInterrupt(tickTimer, &tick, true);
     timerAlarmWrite(tickTimer, 100, true);
     timerAlarmEnable(tickTimer);
 
+    // Setup serial ports
     Serial.begin(9600);
     Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+
+    // Setup motors
+    decMotor.begin();
+    raMotor.begin();
+
+    // Setup slow timer
     led_timer = millis();
 
+    // Configure logger
     logger.addHardwareSerialHandler(&Serial);
 
 #if defined(OTA_UPDATES) || defined(UDP_LOGGING)
@@ -190,10 +197,11 @@ bool toggle = false;
 
 void loop()
 {
+
+    // Process serial port
     cmdHandler.processSerial();
 
-    // TODO: hardware timers
-
+    // Process slow timer
     if (millis() - led_timer > 100)
     {
         led_timer = millis();

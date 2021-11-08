@@ -26,6 +26,9 @@ private:
     uint16_t _buffer_idx = 0;
     const char _startChar = ':';
     const char _endChar = '\r';
+    bool _serialStarted = false;
+    uint32_t _timeoutCounter = 0;
+    const uint32_t _timeoutMillis = 5000;
 
     Logger *_logger;
 

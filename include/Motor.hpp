@@ -16,7 +16,7 @@ class Motor
 {
 public:
     static const uint32_t SLOW_MICROSTEPS = 32;
-    static const uint32_t FAST_MICROSTEPS = 2;
+    static const uint32_t FAST_MICROSTEPS = 8;
     static const uint32_t HIGH_SPEED_RATIO = SLOW_MICROSTEPS / FAST_MICROSTEPS;
     static const uint32_t FULL_STEPS_PER_REV = 141000;
     static const uint32_t MICROSTEPS_PER_REV = SLOW_MICROSTEPS * FULL_STEPS_PER_REV;

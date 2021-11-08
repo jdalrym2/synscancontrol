@@ -20,7 +20,7 @@ void Motor::begin()
     setMicrosteps(SLOW_MICROSTEPS);
     _stepper.setPinsInverted(true, false, false);
     _stepper.setAcceleration(MOTOR_ACCEL);
-    _stepper.setMaxSpeed((float)MAX_PULSE_PER_SECOND);
+    _stepper.setMaxSpeed((float)MAX_PULSE_PER_SECOND / 2); // Tweaking this to avoid stall behavior at fast speeds
     _stepper.setCurrentPosition(_stepperPosition);
     _stepper.moveTo(_stepperTargetPosition);
 }
@@ -267,10 +267,6 @@ void Motor::longTick()
 
     if (_moving)
     {
-        if (getSlewType() == SlewTypeEnum::TRACKING && !_toStop)
-        {
-        }
-
         if (_toStop && _stepper.distanceToGo() == 0)
         {
             _toStop = false;
