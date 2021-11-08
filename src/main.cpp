@@ -26,37 +26,105 @@ const char *password = "cy3z46ex7fyhmk";
 AsyncUDP udp;
 #endif
 
+// RA motor pinouts
 #define RA_M0 12
 #define RA_M1 14
 #define RA_M2 27
-#define RA_STEP 25
-#define RA_DIR 26
+#define RA_STEP 26
+#define RA_DIR 25
 
+// DEC motor pinouts
+#define DEC_M0 33
+#define DEC_M1 32
+#define DEC_M2 5
+#define DEC_STEP 18
+#define DEC_DIR 19
+
+// Autoguider pinouts
+#define RA_POS_PIN 36
+#define DEC_POS_PIN 39
+#define RA_NEG_PIN 34
+#define DEC_NEG_PIN 35
+
+// LED pinouts
+#define PWR_LED 4
+#define SCOPE_LED 15
+#define BUILT_IN_LED 2
+
+// LED PWM channels
+#define PWR_LED_PWM 0
+#define SCOPE_LED_PWM 1
+#define BUILT_IN_LED_PWM 2
+
+// Serial pinouts
 #define SERIAL2_RX 16
 #define SERIAL2_TX 17
+
+// Hardware timers
+hw_timer_t *tickTimer = nullptr;
 
 Logger logger;
 
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, &logger);
-//Motor decMotor(AxisEnum::AXIS_DEC);
-CommandHandler cmdHandler(&Serial2, &raMotor, &raMotor); // TODO: change second motor to DEC
+Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, &logger);
+CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger); // TODO: change second motor to DEC
 
-unsigned long longTickTimer;
+unsigned long led_timer;
+
+void tick()
+{
+    decMotor.tick();
+    raMotor.tick();
+}
+
+void longTick()
+{
+
+    decMotor.longTick();
+    raMotor.longTick();
+}
 
 void setup()
 {
+    // Set CPU frequency
     setCpuFrequencyMhz(240);
+
+    // Set output pins
     pinMode(RA_M0, OUTPUT);
     pinMode(RA_M1, OUTPUT);
     pinMode(RA_M2, OUTPUT);
     pinMode(RA_STEP, OUTPUT);
     pinMode(RA_DIR, OUTPUT);
+    pinMode(DEC_M0, OUTPUT);
+    pinMode(DEC_M1, OUTPUT);
+    pinMode(DEC_M2, OUTPUT);
+    pinMode(DEC_STEP, OUTPUT);
+    pinMode(DEC_DIR, OUTPUT);
+    pinMode(RA_POS_PIN, INPUT);
+    pinMode(DEC_POS_PIN, INPUT);
+    pinMode(RA_NEG_PIN, INPUT);
+    pinMode(DEC_NEG_PIN, INPUT);
 
+    // Setup LED pins
+    ledcAttachPin(PWR_LED, PWR_LED_PWM);
+    ledcSetup(PWR_LED_PWM, 5000, 8);
+    ledcAttachPin(SCOPE_LED, SCOPE_LED_PWM);
+    ledcSetup(SCOPE_LED_PWM, 5000, 8);
+    ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
+    ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
+
+    decMotor.begin();
     raMotor.begin();
+
+    // Setup motor tick timers
+    tickTimer = timerBegin(0, 80, true);
+    timerAttachInterrupt(tickTimer, &tick, true);
+    timerAlarmWrite(tickTimer, 100, true);
+    timerAlarmEnable(tickTimer);
 
     Serial.begin(9600);
     Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
-    longTickTimer = millis();
+    led_timer = millis();
 
     logger.addHardwareSerialHandler(&Serial);
 
@@ -114,17 +182,36 @@ void setup()
     ArduinoOTA.begin();
 
 #endif
+
+    logger.debug("Logging started!");
 }
+
+bool toggle = false;
 
 void loop()
 {
     cmdHandler.processSerial();
-    raMotor.tick();
 
-    if (millis() - longTickTimer > 100)
+    // TODO: hardware timers
+
+    if (millis() - led_timer > 100)
     {
-        longTickTimer = millis();
-        raMotor.longTick();
+        led_timer = millis();
+
+        longTick();
+
+        if (toggle)
+        {
+            ledcWrite(0, 255);
+            ledcWrite(1, 255);
+        }
+        else
+        {
+            ledcWrite(0, 0);
+            ledcWrite(1, 0);
+        }
+
+        toggle = !toggle;
     }
 
 #ifdef OTA_UPDATES

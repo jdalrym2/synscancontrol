@@ -27,7 +27,7 @@ class HardwareSerialLoggerHandler : public LoggerHandler
 {
 public:
     HardwareSerialLoggerHandler(HardwareSerial *s) : _s(s){};
-    void log(const char *msg)
+    void log(const char *msg) override
     {
         _s->println(msg);
     }
@@ -48,7 +48,7 @@ public:
             Serial.println("UDP connected.");
         }
     }
-    void log(const char *msg)
+    void log(const char *msg) override
     {
         _udp->broadcastTo(msg, _udpPort);
     }

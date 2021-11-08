@@ -18,6 +18,7 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
 void Motor::begin()
 {
     setMicrosteps(SLOW_MICROSTEPS);
+    _stepper.setPinsInverted(true, false, false);
     _stepper.setAcceleration(MOTOR_ACCEL);
     _stepper.setMaxSpeed((float)MAX_PULSE_PER_SECOND);
     _stepper.setCurrentPosition(_stepperPosition);
@@ -257,12 +258,12 @@ void Motor::longTick()
     setStepperPosition(_stepper.currentPosition());
 
     // Debug
-    std::ostringstream log;
+    /*std::ostringstream log;
     log << "STGT: " << _stepper.targetPosition() << ";";
     log << " DTG: " << _stepper.distanceToGo() << ";";
     log << " SPOS: " << _stepper.currentPosition() << ";";
-    log << " POS: " << getPosition() << ";";
-    _logger->debug(&log);
+    log << " POS: " << std::hex << getPosition() << ";";
+    _logger->debug(&log);*/
 
     if (_moving)
     {
@@ -282,16 +283,16 @@ long Motor::_computeStepperPosition(uint32_t currentPosition)
 {
     long stepperPosition;
     if (currentPosition == POSITION_NINFINITE)
-        stepperPosition = STEPPER_INFINITE;
-    else if (currentPosition == POSITION_INFINITE)
         stepperPosition = STEPPER_NINFINITE;
+    else if (currentPosition == POSITION_INFINITE)
+        stepperPosition = STEPPER_INFINITE;
     else
     {
         stepperPosition = STEPPER_MID_POSITION;
         if (_speed == SlewSpeedEnum::FAST)
-            stepperPosition -= (long)(currentPosition - MID_POSITION) / (long)HIGH_SPEED_RATIO;
+            stepperPosition += (long)(currentPosition - MID_POSITION) / (long)HIGH_SPEED_RATIO;
         else
-            stepperPosition -= (long)(currentPosition - MID_POSITION);
+            stepperPosition += (long)(currentPosition - MID_POSITION);
     }
     return stepperPosition;
 }
@@ -300,16 +301,16 @@ uint32_t Motor::_computePosition(long stepperPosition)
 {
     uint32_t currentPosition;
     if (stepperPosition == STEPPER_NINFINITE)
-        currentPosition = POSITION_INFINITE;
-    else if (stepperPosition == STEPPER_INFINITE)
         currentPosition = POSITION_NINFINITE;
+    else if (stepperPosition == STEPPER_INFINITE)
+        currentPosition = POSITION_INFINITE;
     else
     {
         currentPosition = MID_POSITION;
         if (_speed == SlewSpeedEnum::FAST)
-            currentPosition += HIGH_SPEED_RATIO * (STEPPER_MID_POSITION - stepperPosition);
+            currentPosition -= HIGH_SPEED_RATIO * (STEPPER_MID_POSITION - stepperPosition);
         else
-            currentPosition += (STEPPER_MID_POSITION - stepperPosition);
+            currentPosition -= (STEPPER_MID_POSITION - stepperPosition);
     }
     return currentPosition;
 }

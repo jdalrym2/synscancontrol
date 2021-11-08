@@ -12,16 +12,21 @@ protected:
 
 public:
     virtual ~Reply() {}
-
-    virtual void send(HardwareSerial *s);
+    virtual void toStringStream(std::ostringstream *s);
+    void send(HardwareSerial *s)
+    {
+        std::ostringstream out;
+        toStringStream(&out);
+        s->write(out.str().c_str());
+    }
 };
 
 class EmptyReply : public Reply
 {
 public:
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
-        s->write("=\r");
+        (*s) << "=\r";
     }
 };
 
@@ -41,11 +46,9 @@ public:
         HexConversionUtils::toHexString<uint32_t>(data, _data, len);
     }
 
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
-        s->write('=');
-        s->write(_data);
-        s->write('\r');
+        (*s) << '=' << _data << '\r';
     }
 };
 
@@ -65,11 +68,9 @@ public:
         HexConversionUtils::toHexString<uint32_t>(data, _data, len);
     }
 
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
-        s->write('=');
-        s->write(_data);
-        s->write('\r');
+        (*s) << '=' << _data << '\r';
     }
 };
 
@@ -89,11 +90,9 @@ public:
         sprintf(_version, "%X%X%X%X00", major, minor, micro, patch);
     }
 
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
-        s->write('=');
-        s->write(_version);
-        s->write('\r');
+        (*s) << '=' << _version << '\r';
     }
 };
 
@@ -113,11 +112,11 @@ public:
         _errorCode = errorCode;
     }
 
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
         char ret[11];
         sprintf(ret, "!%X\r", (int)_errorCode);
-        s->write(ret);
+        (*s) << ret;
     }
 };
 
@@ -212,11 +211,11 @@ public:
         }
     }
 
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
         char ret[11];
         sprintf(ret, "=%X%X%X\r", b0, b1, b2);
-        s->write(ret);
+        (*s) << ret;
     }
 };
 
@@ -348,11 +347,11 @@ public:
         }
     }
 
-    void send(HardwareSerial *s) override
+    void toStringStream(std::ostringstream *s) override
     {
         char ret[11];
         sprintf(ret, "=%X%X%X000\r", b0, b1, b2);
-        s->write(ret);
+        (*s) << ret;
     }
 };
 

@@ -6,13 +6,14 @@
 #include "Command.hpp"
 #include "Motor.hpp"
 #include "Reply.hpp"
+#include "Logger.hpp"
 
 #define COMMAND_BUFFER_SIZE 256
 
 class CommandHandler
 {
 public:
-    CommandHandler(HardwareSerial *commSerial, Motor *raMotor, Motor *decMotor);
+    CommandHandler(HardwareSerial *commSerial, Motor *raMotor, Motor *decMotor, Logger *logger);
     void processSerial();
     void clearBuffer();
     Motor *getMotorForAxis(AxisEnum axis);
@@ -25,6 +26,8 @@ private:
     uint16_t _buffer_idx = 0;
     const char _startChar = ':';
     const char _endChar = '\r';
+
+    Logger *_logger;
 
 private:
     Reply *_processCommand(Command *command);

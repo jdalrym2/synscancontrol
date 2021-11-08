@@ -1,11 +1,12 @@
 #include "CommandHandler.hpp"
 
 CommandHandler::CommandHandler(HardwareSerial *commSerial,
-                               Motor *raMotor, Motor *decMotor)
+                               Motor *raMotor, Motor *decMotor, Logger *logger)
 {
     _commSerial = commSerial;
     _raMotor = raMotor;
     _decMotor = decMotor;
+    _logger = logger;
 }
 
 void CommandHandler::processSerial()
@@ -25,6 +26,14 @@ void CommandHandler::processSerial()
         // so check this length
         if (inChar == _endChar && _buffer_idx > 2)
         {
+            // Log the command we got
+            // TODO: remove
+            /*
+            std::ostringstream log;
+            log << "Received command: " << _buffer;
+            _logger->debug(&log);
+            */
+
             // Process the message and get a reply
             Command *cmd = CommandFactory::parse(_buffer, _buffer_idx);
             if (cmd)
@@ -40,13 +49,18 @@ void CommandHandler::processSerial()
                     // create a Serial output buffer and send when available
                     if (reply)
                     {
+                        // Log the reply we are giving
+                        // TODO: remove
+                        /*std::ostringstream log;
+                        log << "Sending reply: ";
+                        reply->toStringStream(&log);
+                        _logger->debug(&log);*/
+
                         reply->send(_commSerial);
                     }
                     else
                     {
-#ifdef DEBUG
-                        Serial.println("Failed to come up with a reply!");
-#endif
+                        _logger->error("Failed to come up with a reply!");
                     }
 
                     // We are done processing the reply
@@ -54,22 +68,18 @@ void CommandHandler::processSerial()
                 }
                 else
                 {
-#ifdef DEBUG
-                    Serial.println("Error parsing command!");
-                    Serial.println("===");
-                    Serial.println(_buffer);
-                    Serial.println("===");
-#endif
+                    _logger->error("Error parsing command!");
+                    _logger->error("===");
+                    _logger->error(_buffer);
+                    _logger->error("===");
                 }
             }
             else
             {
-#ifdef DEBUG
-                Serial.println("Command factory returned nullptr!");
-                Serial.println("===");
-                Serial.println(_buffer);
-                Serial.println("===");
-#endif
+                _logger->error("Command factory returned nullptr!");
+                _logger->error("===");
+                _logger->error(_buffer);
+                _logger->error("===");
             }
 
             // We are done processing the command
@@ -120,11 +130,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
     case CommandEnum::SET_POSITION_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         SetPositionCommand *thisCmd = (SetPositionCommand *)cmd;
 
         // Set motor position
@@ -149,11 +154,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_MOTION_MODE_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         SetMotionModeCommand *thisCmd = (SetMotionModeCommand *)cmd;
 
         // Set motor motion mode
@@ -172,11 +172,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_GOTO_TARGET_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         SetGotoTargetCommand *thisCmd = (SetGotoTargetCommand *)cmd;
 
         // Set GOTO target position
@@ -193,11 +188,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_GOTO_TARGET_INCREMENT_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         SetGotoTargetIncrementCommand *thisCmd = (SetGotoTargetIncrementCommand *)cmd;
         if (!thisMotor->isMoving())
         {
@@ -227,11 +217,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_STEP_PERIOD_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         SetStepPeriodCommand *thisCmd = (SetStepPeriodCommand *)cmd;
         thisMotor->setStepPeriod(thisCmd->getPeriod());
         reply = new EmptyReply();
@@ -239,11 +224,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::START_MOTION_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         // StartMotionCommand *thisCmd = (StartMotionCommand *)cmd;
         if (!thisMotor->isMoving())
         {
@@ -262,11 +242,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::STOP_MOTION_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         // StopMotionCommand *thisCmd = (StopMotionCommand *)cmd;
         if (thisMotor->isMoving())
         {
@@ -277,11 +252,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::INSTANT_STOP_CMD:
     {
-        if (cmd->getAxis() == AxisEnum::AXIS_DEC)
-        {
-            reply = new EmptyReply();
-            break;
-        }
         // InstantStopCommand *thisCmd = (InstantStopCommand *)cmd;
         // TODO
         reply = new EmptyReply();
