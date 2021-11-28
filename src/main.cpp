@@ -112,6 +112,31 @@ void setup()
     pinMode(RA_NEG_PIN, INPUT);
     pinMode(DEC_NEG_PIN, INPUT);
 
+    // Setup serial ports
+    Serial.begin(9600);
+    Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+
+#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
+    // Connect to WiFi
+    WiFi.mode(WIFI_STA);
+    Serial.println("Starting WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.waitForConnectResult() != WL_CONNECTED)
+    {
+        Serial.println("Connection Failed! Rebooting...");
+        delay(5000);
+        ESP.restart();
+    }
+
+    Serial.println("Ready");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+#endif
+
+#ifdef UDP_LOGGING
+    logger.addUDPHandler(&udp, 6309);
+#endif
+
     // Setup LED pins
     ledcAttachPin(PWR_LED, PWR_LED_PWM);
     ledcSetup(PWR_LED_PWM, 5000, 8);
@@ -131,10 +156,6 @@ void setup()
     timerAlarmWrite(tickTimer, 100, true);
     timerAlarmEnable(tickTimer);
 
-    // Setup serial ports
-    Serial.begin(9600);
-    Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
-
     // Setup motors
     decMotor.begin();
     raMotor.begin();
@@ -144,25 +165,6 @@ void setup()
 
     // Configure logger
     logger.addHardwareSerialHandler(&Serial);
-
-#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    while (WiFi.waitForConnectResult() != WL_CONNECTED)
-    {
-        Serial.println("Connection Failed! Rebooting...");
-        delay(5000);
-        ESP.restart();
-    }
-
-    Serial.println("Ready");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-#endif
-
-#ifdef UDP_LOGGING
-    logger.addUDPHandler(&udp, 6309);
-#endif
 
 #ifdef OTA_UPDATES
     ArduinoOTA
