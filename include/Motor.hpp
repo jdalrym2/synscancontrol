@@ -21,7 +21,7 @@ public:
     static const uint32_t FULL_STEPS_PER_REV = 141000;
     static const uint32_t MICROSTEPS_PER_REV = SLOW_MICROSTEPS * FULL_STEPS_PER_REV;
     static const uint32_t MAX_PULSE_PER_SECOND = 10000;
-    static constexpr float MOTOR_ACCEL = 2500.0;
+    static constexpr float MOTOR_ACCEL = 5000.0;
     static constexpr float SIDEREAL_STEP_PER_SECOND = (float)MICROSTEPS_PER_REV / 360.0 * ARCSEC_TO_DEGREE * SIDEREAL_SPEED_ARCSEC;
     static constexpr float SIDEREAL_PULSE_PER_STEP = MAX_PULSE_PER_SECOND / SIDEREAL_STEP_PER_SECOND;
 

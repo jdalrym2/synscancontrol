@@ -31,7 +31,6 @@ void CommandHandler::processSerial()
         if (inChar == _endChar && _buffer_idx > 2)
         {
             // Log the command we got
-            // TODO: remove
             /*
             std::ostringstream log;
             log << "Received command: " << _buffer;

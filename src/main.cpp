@@ -79,8 +79,10 @@ CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger);
 // Motor fast tick (hardware interrupt)
 void tick()
 {
+#ifndef UDP_LOGGING
     decMotor.tick();
     raMotor.tick();
+#endif
 }
 
 // Motor slow tick (loop)
@@ -178,6 +180,10 @@ void setup()
 
                      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
                      Serial.println("Start updating " + type);
+
+                     // Disable hardware timer
+                     timerAlarmDisable(tickTimer);
+                     timerDetachInterrupt(tickTimer);
                  })
         .onEnd([]()
                { Serial.println("\nEnd"); })

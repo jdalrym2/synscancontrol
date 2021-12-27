@@ -18,7 +18,7 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
 void Motor::begin()
 {
     setMicrosteps(SLOW_MICROSTEPS);
-    _stepper.setPinsInverted(true, false, false);
+    _stepper.setPinsInverted(false, false, false);
     _stepper.setAcceleration(MOTOR_ACCEL);
     _stepper.setMaxSpeed((float)MAX_PULSE_PER_SECOND / 2); // Tweaking this to avoid stall behavior at fast speeds
     _stepper.setCurrentPosition(_stepperPosition);
@@ -79,7 +79,10 @@ void Motor::setTargetPosition(uint32_t position)
     _stepper.moveTo(_stepperTargetPosition);
 
     std::ostringstream log;
-    log << "Setting target position (reference) to: 0x" << std::hex << _targetPosition << ", " << _stepperTargetPosition;
+    log << "Axis: " << int(_axis) << "; Current position: 0x" << std::hex << getPosition();
+    _logger->debug(&log);
+    log.str("");
+    log << "Axis: " << int(_axis) << "; Setting target position (reference) to: 0x" << std::hex << _targetPosition << ", 0x" << std::hex << _stepperTargetPosition;
     _logger->debug(&log);
 }
 
@@ -91,7 +94,10 @@ void Motor::setStepperTargetPosition(long position)
 
     // Debug
     std::ostringstream log;
-    log << "Setting target position (stepper) to: 0x" << std::hex << _targetPosition << ", " << _stepperTargetPosition;
+    log << "Axis: " << int(_axis) << "; Current position: 0x" << std::hex << getPosition();
+    _logger->debug(&log);
+    log.str("");
+    log << "Axis: " << int(_axis) << "; Setting target position (stepper) to: 0x" << std::hex << _targetPosition << ", 0x" << std::hex << _stepperTargetPosition;
     _logger->debug(&log);
 }
 
@@ -100,7 +106,7 @@ void Motor::setStepPeriod(uint32_t stepPeriod)
 
     // Debug
     std::ostringstream log;
-    log << "Setting step period to: " << stepPeriod;
+    log << "Axis: " << int(_axis) << "; Setting step period to: " << stepPeriod;
     _logger->debug(&log);
 
     _stepPeriod = stepPeriod;
@@ -114,7 +120,7 @@ void Motor::setSlewType(SlewTypeEnum type)
 
     // Debug
     std::ostringstream log;
-    log << "Setting slew type to: ";
+    log << "Axis: " << int(_axis) << "; Setting slew type to: ";
     if (type == SlewTypeEnum::GOTO)
         log << "GOTO";
     else if (type == SlewTypeEnum::TRACKING)
@@ -135,7 +141,7 @@ void Motor::setSlewSpeed(SlewSpeedEnum speed)
 
     // Debug
     std::ostringstream log;
-    log << "Setting slew speed to: ";
+    log << "Axis: " << int(_axis) << "; Setting slew speed to: ";
     if (speed == SlewSpeedEnum::FAST)
         log << "FAST";
     else if (speed == SlewSpeedEnum::SLOW)
@@ -151,7 +157,7 @@ void Motor::setSlewDir(SlewDirectionEnum dir)
 
     // Debug
     std::ostringstream log;
-    log << "Setting slew direction to: ";
+    log << "Axis: " << int(_axis) << "; Setting slew direction to: ";
     if (dir == SlewDirectionEnum::CCW)
         log << "CCW";
     else if (dir == SlewDirectionEnum::CW)
@@ -169,7 +175,7 @@ void Motor::setMotion(bool moving)
         _toStop = false;
         if (getSlewType() == SlewTypeEnum::TRACKING)
         {
-            if (getSlewDirection() == SlewDirectionEnum::CCW)
+            if (getSlewDirection() == SlewDirectionEnum::CW)
             {
                 setStepperTargetPosition(STEPPER_INFINITE);
             }
@@ -188,10 +194,10 @@ void Motor::setMotion(bool moving)
 
         // Debug
         std::ostringstream log;
-        log << "About to stop!" << _stepper.speed() << ", " << stepsToStop;
+        log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.speed() << ", Steps to stop: " << stepsToStop;
         _logger->debug(&log);
 
-        if (getSlewDirection() == SlewDirectionEnum::CCW)
+        if (getSlewDirection() == SlewDirectionEnum::CW)
         {
             setStepperTargetPosition(_stepper.currentPosition() + stepsToStop);
         }
