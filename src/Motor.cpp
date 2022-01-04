@@ -3,7 +3,7 @@
 
 #include "Motor.hpp"
 
-Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, Logger *logger)
+Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, Logger *logger)
 {
     _axis = axis;
     _M0 = M0;
@@ -12,6 +12,8 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
     _STEP = STEP;
     _DIR = DIR;
     _stepper = AccelStepper(AccelStepper::DRIVER, STEP, DIR);
+    _position = startPos;
+    _stepperPosition = _computeStepperPosition(startPos);
     _logger = logger;
 }
 
@@ -184,6 +186,10 @@ void Motor::setMotion(bool moving)
                 setStepperTargetPosition(STEPPER_NINFINITE);
             }
         }
+        else if (getSlewType() == SlewTypeEnum::GOTO)
+        {
+            setStepPeriod(0);
+        }
     }
     else
     {
@@ -264,16 +270,26 @@ void Motor::longTick()
     setStepperPosition(_stepper.currentPosition());
 
     // Debug
-    /*std::ostringstream log;
-    log << "STGT: " << _stepper.targetPosition() << ";";
-    log << " DTG: " << _stepper.distanceToGo() << ";";
-    log << " SPOS: " << _stepper.currentPosition() << ";";
-    log << " POS: " << std::hex << getPosition() << ";";
-    _logger->debug(&log);*/
+    /*if (_moving)
+    {
+        std::ostringstream log;
+        log << "Axis: " << int(_axis) << "; STGT: 0x" << std::hex << _stepper.targetPosition() << ";";
+        log << " DTG: " << std::dec << _stepper.distanceToGo() << ";";
+        log << " SPOS: 0x" << std::hex << _stepper.currentPosition() << ";";
+        log << " POS: 0x" << std::hex << getPosition() << ";";
+        log << " TOSTOP: " << std::dec << _toStop << "; MOVING: " << _moving << ";";
+        _logger->debug(&log);
+    }*/
 
     if (_moving)
     {
-        if (_toStop && _stepper.distanceToGo() == 0)
+        if (_toStop && !_stepper.isRunning())
+        {
+            _toStop = false;
+            _moving = false;
+        }
+
+        if (_type == SlewTypeEnum::GOTO && !_stepper.isRunning())
         {
             _toStop = false;
             _moving = false;

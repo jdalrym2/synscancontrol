@@ -70,8 +70,8 @@ unsigned long longTickTimer = 0;
 Logger logger;
 
 // Motors
-Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, &logger);
-Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, &logger);
+Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, &logger);
+Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x913640, &logger);
 
 // Serial Command handler
 CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger);

@@ -20,7 +20,7 @@ public:
     static const uint32_t HIGH_SPEED_RATIO = SLOW_MICROSTEPS / FAST_MICROSTEPS;
     static const uint32_t FULL_STEPS_PER_REV = 141000;
     static const uint32_t MICROSTEPS_PER_REV = SLOW_MICROSTEPS * FULL_STEPS_PER_REV;
-    static const uint32_t MAX_PULSE_PER_SECOND = 10000;
+    static const uint32_t MAX_PULSE_PER_SECOND = 20000;
     static constexpr float MOTOR_ACCEL = 5000.0;
     static constexpr float SIDEREAL_STEP_PER_SECOND = (float)MICROSTEPS_PER_REV / 360.0 * ARCSEC_TO_DEGREE * SIDEREAL_SPEED_ARCSEC;
     static constexpr float SIDEREAL_PULSE_PER_STEP = MAX_PULSE_PER_SECOND / SIDEREAL_STEP_PER_SECOND;
@@ -38,7 +38,7 @@ public:
     static const long STEPPER_INFINITE = std::numeric_limits<long>::max() / 2;
     static const long STEPPER_NINFINITE = std::numeric_limits<long>::min() / 2;
 
-    Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, Logger *logger);
+    Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, Logger *logger);
 
     void begin();
     uint32_t getPosition() const;

@@ -31,11 +31,9 @@ void CommandHandler::processSerial()
         if (inChar == _endChar && _buffer_idx > 2)
         {
             // Log the command we got
-            /*
             std::ostringstream log;
             log << "Received command: " << _buffer;
             _logger->debug(&log);
-            */
 
             // Process the message and get a reply
             Command *cmd = CommandFactory::parse(_buffer, _buffer_idx);
@@ -101,6 +99,7 @@ void CommandHandler::processSerial()
     }
 
     // Serial timeout handling
+#ifdef SERIAL_TIMEOUT
     if (_serialStarted && (millis() - _timeoutCounter > _timeoutMillis))
     {
         _logger->info("Serial timeout reached!");
@@ -108,6 +107,7 @@ void CommandHandler::processSerial()
         _raMotor->setMotion(false);
         _decMotor->setMotion(false);
     }
+#endif
 }
 
 void CommandHandler::clearBuffer()
