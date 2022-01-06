@@ -11,7 +11,7 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
     _M2 = M2;
     _STEP = STEP;
     _DIR = DIR;
-    _stepper = AccelStepper(AccelStepper::DRIVER, STEP, DIR);
+    _stepper = CustomAccelStepper(AccelStepper::DRIVER, STEP, DIR);
     _position = startPos;
     _stepperPosition = _computeStepperPosition(startPos);
     _logger = logger;
@@ -260,7 +260,12 @@ void Motor::tick()
 {
     if (_moving)
     {
-        _stepper.run();
+        // Similar to AccelStepper::Run
+        if (_stepper.runSpeed())
+        {
+            _stepper.computeNewSpeed();
+            _steps++;
+        }
     }
 }
 
@@ -270,7 +275,7 @@ void Motor::longTick()
     setStepperPosition(_stepper.currentPosition());
 
     // Debug
-    /*if (_moving)
+    if (_moving)
     {
         std::ostringstream log;
         log << "Axis: " << int(_axis) << "; STGT: 0x" << std::hex << _stepper.targetPosition() << ";";
@@ -278,8 +283,9 @@ void Motor::longTick()
         log << " SPOS: 0x" << std::hex << _stepper.currentPosition() << ";";
         log << " POS: 0x" << std::hex << getPosition() << ";";
         log << " TOSTOP: " << std::dec << _toStop << "; MOVING: " << _moving << ";";
+        log << " _STEPS: " << std::dec << _steps;
         _logger->debug(&log);
-    }*/
+    }
 
     if (_moving)
     {
@@ -306,6 +312,12 @@ long Motor::_computeStepperPosition(uint32_t currentPosition)
         stepperPosition = STEPPER_INFINITE;
     else
     {
+
+        while (currentPosition > MAX_POSITION)
+            currentPosition -= MICROSTEPS_PER_REV;
+        while (currentPosition < MIN_POSITION)
+            currentPosition += MICROSTEPS_PER_REV;
+
         stepperPosition = STEPPER_MID_POSITION;
         if (_speed == SlewSpeedEnum::FAST)
             stepperPosition += (long)(currentPosition - MID_POSITION) / (long)HIGH_SPEED_RATIO;
@@ -329,6 +341,11 @@ uint32_t Motor::_computePosition(long stepperPosition)
             currentPosition -= HIGH_SPEED_RATIO * (STEPPER_MID_POSITION - stepperPosition);
         else
             currentPosition -= (STEPPER_MID_POSITION - stepperPosition);
+
+        while (currentPosition > MAX_POSITION)
+            currentPosition -= MICROSTEPS_PER_REV;
+        while (currentPosition < MIN_POSITION)
+            currentPosition += MICROSTEPS_PER_REV;
     }
     return currentPosition;
 }

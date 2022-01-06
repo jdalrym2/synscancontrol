@@ -12,6 +12,19 @@
 #include "Logger.hpp"
 #include "Enums.hpp"
 
+class CustomAccelStepper : public AccelStepper
+{
+    using AccelStepper::AccelStepper;
+
+public:
+    // Make computeNewSpeed public so we can undo
+    // the AccelStepper::run method
+    void computeNewSpeed()
+    {
+        AccelStepper::computeNewSpeed();
+    };
+};
+
 class Motor
 {
 public:
@@ -77,7 +90,7 @@ private:
 
     Logger *_logger;
 
-    AccelStepper _stepper;
+    CustomAccelStepper _stepper;
 
     uint32_t _pecPeriod = 0;
     uint32_t _position = MID_POSITION;
@@ -87,6 +100,8 @@ private:
     uint32_t _stepPeriod = 0;
     bool _moving = false;
     bool _toStop = false;
+
+    volatile uint32_t _steps = 0;
 
     SlewTypeEnum _type = SlewTypeEnum::NONE;
     SlewSpeedEnum _speed = SlewSpeedEnum::NONE;

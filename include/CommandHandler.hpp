@@ -5,6 +5,7 @@
 
 #include "Command.hpp"
 #include "Motor.hpp"
+#include "PolarScopeLED.hpp"
 #include "Reply.hpp"
 #include "Logger.hpp"
 
@@ -13,7 +14,7 @@
 class CommandHandler
 {
 public:
-    CommandHandler(HardwareSerial *commSerial, Motor *raMotor, Motor *decMotor, Logger *logger);
+    CommandHandler(HardwareSerial *commSerial, Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger);
     void processSerial();
     void clearBuffer();
     Motor *getMotorForAxis(AxisEnum axis);
@@ -22,6 +23,7 @@ private:
     HardwareSerial *_commSerial;
     Motor *_raMotor;
     Motor *_decMotor;
+    PolarScopeLED *_polarScopeLED;
     char _buffer[COMMAND_BUFFER_SIZE + 1];
     uint16_t _buffer_idx = 0;
     const char _startChar = ':';

@@ -1,11 +1,12 @@
 #include "CommandHandler.hpp"
 
 CommandHandler::CommandHandler(HardwareSerial *commSerial,
-                               Motor *raMotor, Motor *decMotor, Logger *logger)
+                               Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger)
 {
     _commSerial = commSerial;
     _raMotor = raMotor;
     _decMotor = decMotor;
+    _polarScopeLED = polarScopeLED;
     _logger = logger;
 }
 
@@ -31,9 +32,9 @@ void CommandHandler::processSerial()
         if (inChar == _endChar && _buffer_idx > 2)
         {
             // Log the command we got
-            std::ostringstream log;
+            /*std::ostringstream log;
             log << "Received command: " << _buffer;
-            _logger->debug(&log);
+            _logger->debug(&log);*/
 
             // Process the message and get a reply
             Command *cmd = CommandFactory::parse(_buffer, _buffer_idx);
@@ -282,8 +283,8 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_POLAR_LED_BRIGHTNESS_CMD:
     {
-        // SetPolarLEDBrightnessCommand *thisCmd = (SetPolarLEDBrightnessCommand *)cmd;
-        // TODO: if we want
+        SetPolarLEDBrightnessCommand *thisCmd = (SetPolarLEDBrightnessCommand *)cmd;
+        _polarScopeLED->setBrightness(thisCmd->getValue());
         reply = new EmptyReply();
         break;
     }

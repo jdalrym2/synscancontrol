@@ -476,6 +476,11 @@ bool SetPolarLEDBrightnessCommand::parse(const char *data, uint16_t len)
     return success;
 }
 
+uint8_t SetPolarLEDBrightnessCommand::getValue() const
+{
+    return _value;
+}
+
 GetCountsPerRevCommand::GetCountsPerRevCommand()
 {
     _cmd = CommandEnum::GET_COUNTS_PER_REV_CMD;

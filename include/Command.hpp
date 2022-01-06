@@ -194,11 +194,11 @@ class SetPolarLEDBrightnessCommand : public Command
 {
 private:
     static const uint16_t MSG_SIZE = 5;
-    uint16_t _value = 0;
+    uint8_t _value = 0;
 
 public:
     SetPolarLEDBrightnessCommand();
-
+    uint8_t getValue() const;
     bool parse(const char *data, uint16_t len) override;
 };
 

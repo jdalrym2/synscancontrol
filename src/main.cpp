@@ -15,6 +15,7 @@
 #include "Logger.hpp"
 #include "Enums.hpp"
 #include "Motor.hpp"
+#include "PolarScopeLED.hpp"
 #include "CommandHandler.hpp"
 
 #if defined(OTA_UPDATES) || defined(UDP_LOGGING)
@@ -73,8 +74,11 @@ Logger logger;
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, &logger);
 Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x913640, &logger);
 
+// Polar Scope LED
+PolarScopeLED polarScopeLED(SCOPE_LED, SCOPE_LED_PWM, &logger);
+
 // Serial Command handler
-CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &logger);
+CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &polarScopeLED, &logger);
 
 // Motor fast tick (hardware interrupt)
 void tick()
@@ -140,17 +144,15 @@ void setup()
 #endif
 
     // Setup LED pins
+    polarScopeLED.begin(); // handles polar scope LED
     ledcAttachPin(PWR_LED, PWR_LED_PWM);
     ledcSetup(PWR_LED_PWM, 5000, 8);
-    ledcAttachPin(SCOPE_LED, SCOPE_LED_PWM);
-    ledcSetup(SCOPE_LED_PWM, 5000, 8);
     ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
     ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
 
     // Static brightness for now
     // We can do way cooler things to show status, etc, later
     ledcWrite(PWR_LED_PWM, 255);
-    ledcWrite(SCOPE_LED_PWM, 64);
 
     // Setup motor tick timers
     tickTimer = timerBegin(0, 80, true);
