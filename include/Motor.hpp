@@ -17,12 +17,59 @@ class CustomAccelStepper : public AccelStepper
     using AccelStepper::AccelStepper;
 
 public:
+    static const long STEPPER_INFINITE = std::numeric_limits<long>::max() / 2;
+    static const long STEPPER_NINFINITE = std::numeric_limits<long>::min() / 2;
+
+private:
+    long _stepsToStop = 0;
+    float _accel = 0;
+
+public:
+    void setAcceleration(float acceleration)
+    {
+        AccelStepper::setAcceleration(acceleration);
+        _accel = acceleration;
+    }
+
     // Make computeNewSpeed public so we can undo
     // the AccelStepper::run method
     void computeNewSpeed()
     {
         AccelStepper::computeNewSpeed();
+        _stepsToStop = (uint32_t)((speed() * speed()) / (2.0 * _accel)) + 1;
+        if (_stepsToStop != 0)
+            _stepsToStop -= 1; // I think
     };
+
+    long stepsToStop()
+    {
+        return _stepsToStop;
+    }
+
+    float acceleration()
+    {
+        return _accel;
+    }
+
+    // distanceToGo() override that supports
+    // infinite distances via the STEPPER_[N]INFINITE
+    // static members
+    long distanceToGo()
+    {
+        if (targetPosition() >= STEPPER_INFINITE)
+            return STEPPER_INFINITE;
+        if (targetPosition() <= STEPPER_NINFINITE)
+            return STEPPER_NINFINITE;
+        return targetPosition() - currentPosition();
+    };
+
+    void moveTo(long absolute)
+    {
+        AccelStepper::moveTo(absolute);
+    }
+
+    void moveToInfinity() { moveTo(STEPPER_INFINITE); };
+    void moveToNInfinity() { moveTo(STEPPER_NINFINITE); };
 };
 
 class Motor
@@ -41,15 +88,8 @@ public:
     // Note we only have 24 bits to store position given the Synscan protocol
     // Note that this position and Accelstepper positions may be different,
     // based on whether or not we are doing slow or fast microstepping
-    static const uint32_t MID_POSITION = 0x800000;
     static const uint32_t POSITION_INFINITE = 0xFFFFFF;
     static const uint32_t POSITION_NINFINITE = 0x000000;
-    static const uint32_t MAX_POSITION = MID_POSITION + MICROSTEPS_PER_REV / 2;
-    static const uint32_t MIN_POSITION = MID_POSITION - MICROSTEPS_PER_REV / 2;
-
-    static const long STEPPER_MID_POSITION = 0;
-    static const long STEPPER_INFINITE = std::numeric_limits<long>::max() / 2;
-    static const long STEPPER_NINFINITE = std::numeric_limits<long>::min() / 2;
 
     Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, Logger *logger);
 
@@ -63,9 +103,7 @@ public:
     bool isMoving() const;
 
     void setPosition(uint32_t position);
-    void setStepperPosition(long position);
     void setTargetPosition(uint32_t position);
-    void setStepperTargetPosition(long position);
     void setStepPeriod(uint32_t stepPeriod);
     void setSlewType(SlewTypeEnum type);
     void setSlewSpeed(SlewSpeedEnum type);
@@ -75,10 +113,6 @@ public:
 
     void tick();
     void longTick();
-
-private:
-    long _computeStepperPosition(uint32_t currentPosition);
-    uint32_t _computePosition(long stepperPosition);
 
 private:
     AxisEnum _axis;
@@ -93,15 +127,13 @@ private:
     CustomAccelStepper _stepper;
 
     uint32_t _pecPeriod = 0;
-    uint32_t _position = MID_POSITION;
-    int32_t _stepperPosition = STEPPER_MID_POSITION;
+    volatile uint32_t _position = 0x800000;
+    uint32_t _maxPosition = _position + MICROSTEPS_PER_REV / 2;
+    uint32_t _minPosition = _position - MICROSTEPS_PER_REV / 2;
     uint32_t _targetPosition = POSITION_INFINITE;
-    int32_t _stepperTargetPosition = STEPPER_INFINITE;
     uint32_t _stepPeriod = 0;
     bool _moving = false;
     bool _toStop = false;
-
-    volatile uint32_t _steps = 0;
 
     SlewTypeEnum _type = SlewTypeEnum::NONE;
     SlewSpeedEnum _speed = SlewSpeedEnum::NONE;

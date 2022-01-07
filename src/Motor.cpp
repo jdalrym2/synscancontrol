@@ -13,7 +13,8 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
     _DIR = DIR;
     _stepper = CustomAccelStepper(AccelStepper::DRIVER, STEP, DIR);
     _position = startPos;
-    _stepperPosition = _computeStepperPosition(startPos);
+    _maxPosition = startPos + MICROSTEPS_PER_REV / 2;
+    _minPosition = startPos - MICROSTEPS_PER_REV / 2;
     _logger = logger;
 }
 
@@ -23,8 +24,8 @@ void Motor::begin()
     _stepper.setPinsInverted(false, false, false);
     _stepper.setAcceleration(MOTOR_ACCEL);
     _stepper.setMaxSpeed((float)MAX_PULSE_PER_SECOND / 2); // Tweaking this to avoid stall behavior at fast speeds
-    _stepper.setCurrentPosition(_stepperPosition);
-    _stepper.moveTo(_stepperTargetPosition);
+    _stepper.setCurrentPosition(0);
+    _stepper.moveTo(0);
 }
 
 uint32_t Motor::getPosition() const
@@ -65,42 +66,19 @@ bool Motor::isMoving() const
 void Motor::setPosition(uint32_t position)
 {
     _position = position;
-    _stepperPosition = _computeStepperPosition(_position);
-}
-
-void Motor::setStepperPosition(long position)
-{
-    _position = _computePosition(position);
-    _stepperPosition = position;
 }
 
 void Motor::setTargetPosition(uint32_t position)
 {
+
+    std::ostringstream log;
+    log << "Axis: " << int(_axis) << "; Current position: 0x" << std::hex << getPosition();
+    _logger->debug(&log);
+    log.str("");
+    log << "Axis: " << int(_axis) << "; Setting target position (reference) to: 0x" << std::hex << position;
+    _logger->debug(&log);
+
     _targetPosition = position;
-    _stepperTargetPosition = _computeStepperPosition(position);
-    _stepper.moveTo(_stepperTargetPosition);
-
-    std::ostringstream log;
-    log << "Axis: " << int(_axis) << "; Current position: 0x" << std::hex << getPosition();
-    _logger->debug(&log);
-    log.str("");
-    log << "Axis: " << int(_axis) << "; Setting target position (reference) to: 0x" << std::hex << _targetPosition << ", 0x" << std::hex << _stepperTargetPosition;
-    _logger->debug(&log);
-}
-
-void Motor::setStepperTargetPosition(long position)
-{
-    _targetPosition = _computePosition(position);
-    _stepperTargetPosition = position;
-    _stepper.moveTo(_stepperTargetPosition);
-
-    // Debug
-    std::ostringstream log;
-    log << "Axis: " << int(_axis) << "; Current position: 0x" << std::hex << getPosition();
-    _logger->debug(&log);
-    log.str("");
-    log << "Axis: " << int(_axis) << "; Setting target position (stepper) to: 0x" << std::hex << _targetPosition << ", 0x" << std::hex << _stepperTargetPosition;
-    _logger->debug(&log);
 }
 
 void Motor::setStepPeriod(uint32_t stepPeriod)
@@ -179,37 +157,69 @@ void Motor::setMotion(bool moving)
         {
             if (getSlewDirection() == SlewDirectionEnum::CW)
             {
-                setStepperTargetPosition(STEPPER_INFINITE);
+                _stepper.moveToInfinity();
             }
             else
             {
-                setStepperTargetPosition(STEPPER_NINFINITE);
+                _stepper.moveToNInfinity();
             }
         }
         else if (getSlewType() == SlewTypeEnum::GOTO)
         {
+            // Move as fast as possible
             setStepPeriod(0);
+
+            // Determine the number of steps at
+            // the given direction to move the
+            // stepper motor to the target position
+            uint32_t numSteps = 0;
+            if (_targetPosition > _position && _dir == SlewDirectionEnum::CW)
+            {
+                numSteps = _targetPosition - _position;
+            }
+            else if (_targetPosition <= _position && _dir == SlewDirectionEnum::CW)
+            {
+                numSteps = (_maxPosition - _position) + (_targetPosition - _minPosition);
+            }
+            else if (_targetPosition > _position && _dir == SlewDirectionEnum::CCW)
+            {
+                numSteps = (_position - _minPosition) + (_maxPosition - _targetPosition);
+            }
+            else
+            {
+                numSteps = _position - _targetPosition;
+            }
+
+            if (_speed == SlewSpeedEnum::FAST)
+                numSteps /= HIGH_SPEED_RATIO;
+
+            _stepper.setCurrentPosition(0);
+            if (_dir == SlewDirectionEnum::CW)
+            {
+                _stepper.moveTo(numSteps);
+            }
+            else
+            {
+                _stepper.moveTo(-numSteps);
+            }
         }
     }
     else
     {
         _toStop = true;
-        uint32_t stepsToStop = (uint32_t)((_stepper.speed() * _stepper.speed()) / (2.0 * MOTOR_ACCEL)) + 1;
-        if (stepsToStop != 0)
-            stepsToStop -= 1; // I think
 
         // Debug
         std::ostringstream log;
-        log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.speed() << ", Steps to stop: " << stepsToStop;
+        log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.speed() << ", Steps to stop: " << _stepper.stepsToStop();
         _logger->debug(&log);
 
         if (getSlewDirection() == SlewDirectionEnum::CW)
         {
-            setStepperTargetPosition(_stepper.currentPosition() + stepsToStop);
+            _stepper.moveTo(_stepper.currentPosition() + _stepper.stepsToStop());
         }
         else
         {
-            setStepperTargetPosition(_stepper.currentPosition() - stepsToStop);
+            _stepper.moveTo(_stepper.currentPosition() - _stepper.stepsToStop());
         }
     }
 }
@@ -264,88 +274,48 @@ void Motor::tick()
         if (_stepper.runSpeed())
         {
             _stepper.computeNewSpeed();
-            _steps++;
+
+            uint32_t numSteps = 1;
+            if (_speed == SlewSpeedEnum::FAST)
+                numSteps *= HIGH_SPEED_RATIO;
+
+            if (_dir == SlewDirectionEnum::CW)
+            {
+                _position += numSteps;
+                if (_position > _maxPosition)
+                    _position -= MICROSTEPS_PER_REV;
+            }
+            else
+            {
+                _position -= numSteps;
+                if (_position < _minPosition)
+                    _position += MICROSTEPS_PER_REV;
+            }
         }
     }
 }
 
 void Motor::longTick()
 {
-    // Sync stepper position with Accelstepper
-    setStepperPosition(_stepper.currentPosition());
-
-    // Debug
     if (_moving)
     {
-        std::ostringstream log;
-        log << "Axis: " << int(_axis) << "; STGT: 0x" << std::hex << _stepper.targetPosition() << ";";
-        log << " DTG: " << std::dec << _stepper.distanceToGo() << ";";
-        log << " SPOS: 0x" << std::hex << _stepper.currentPosition() << ";";
-        log << " POS: 0x" << std::hex << getPosition() << ";";
-        log << " TOSTOP: " << std::dec << _toStop << "; MOVING: " << _moving << ";";
-        log << " _STEPS: " << std::dec << _steps;
-        _logger->debug(&log);
-    }
+        // Debug
+        /*if (int(_axis) == 2)
+        {
+            std::ostringstream log;
+            log << "Axis: " << int(_axis) << ";";
+            log << " TGT: 0x" << std::hex << _targetPosition << ";";
+            log << " POS: 0x" << std::hex << getPosition() << ";";
+            log << " TOSTOP: " << std::dec << _toStop << ";";
+            log << " MOVING: " << _moving << ";";
+            _logger->debug(&log);
+        }*/
 
-    if (_moving)
-    {
-        if (_toStop && !_stepper.isRunning())
+        if ((_toStop || _type == SlewTypeEnum::GOTO) && !_stepper.isRunning())
         {
             _toStop = false;
             _moving = false;
-        }
-
-        if (_type == SlewTypeEnum::GOTO && !_stepper.isRunning())
-        {
-            _toStop = false;
-            _moving = false;
+            _stepper.setCurrentPosition(0);
         }
     }
-}
-
-long Motor::_computeStepperPosition(uint32_t currentPosition)
-{
-    long stepperPosition;
-    if (currentPosition == POSITION_NINFINITE)
-        stepperPosition = STEPPER_NINFINITE;
-    else if (currentPosition == POSITION_INFINITE)
-        stepperPosition = STEPPER_INFINITE;
-    else
-    {
-
-        while (currentPosition > MAX_POSITION)
-            currentPosition -= MICROSTEPS_PER_REV;
-        while (currentPosition < MIN_POSITION)
-            currentPosition += MICROSTEPS_PER_REV;
-
-        stepperPosition = STEPPER_MID_POSITION;
-        if (_speed == SlewSpeedEnum::FAST)
-            stepperPosition += (long)(currentPosition - MID_POSITION) / (long)HIGH_SPEED_RATIO;
-        else
-            stepperPosition += (long)(currentPosition - MID_POSITION);
-    }
-    return stepperPosition;
-}
-
-uint32_t Motor::_computePosition(long stepperPosition)
-{
-    uint32_t currentPosition;
-    if (stepperPosition == STEPPER_NINFINITE)
-        currentPosition = POSITION_NINFINITE;
-    else if (stepperPosition == STEPPER_INFINITE)
-        currentPosition = POSITION_INFINITE;
-    else
-    {
-        currentPosition = MID_POSITION;
-        if (_speed == SlewSpeedEnum::FAST)
-            currentPosition -= HIGH_SPEED_RATIO * (STEPPER_MID_POSITION - stepperPosition);
-        else
-            currentPosition -= (STEPPER_MID_POSITION - stepperPosition);
-
-        while (currentPosition > MAX_POSITION)
-            currentPosition -= MICROSTEPS_PER_REV;
-        while (currentPosition < MIN_POSITION)
-            currentPosition += MICROSTEPS_PER_REV;
-    }
-    return currentPosition;
 }
