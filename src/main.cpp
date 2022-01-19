@@ -71,8 +71,8 @@ unsigned long longTickTimer = 0;
 Logger logger;
 
 // Motors
-Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, &logger);
-Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x913640, &logger);
+Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, false, &logger);
+Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x913640, true, &logger);
 
 // Polar Scope LED
 PolarScopeLED polarScopeLED(SCOPE_LED, SCOPE_LED_PWM, &logger);
@@ -157,7 +157,7 @@ void setup()
     // Setup motor tick timers
     tickTimer = timerBegin(0, 80, true);
     timerAttachInterrupt(tickTimer, &tick, true);
-    timerAlarmWrite(tickTimer, 100, true);
+    timerAlarmWrite(tickTimer, 50, true);
     timerAlarmEnable(tickTimer);
 
     // Setup motors

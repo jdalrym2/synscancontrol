@@ -3,7 +3,7 @@
 
 #include "Motor.hpp"
 
-Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, Logger *logger)
+Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, bool dirReverse, Logger *logger)
 {
     _axis = axis;
     _M0 = M0;
@@ -11,7 +11,7 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
     _M2 = M2;
     _STEP = STEP;
     _DIR = DIR;
-    _stepper = CustomAccelStepper(AccelStepper::DRIVER, STEP, DIR);
+    _stepper = InterruptStepper(STEP, DIR, MAX_PULSE_PER_SECOND, dirReverse);
     _position = startPos;
     _maxPosition = startPos + MICROSTEPS_PER_REV / 2;
     _minPosition = startPos - MICROSTEPS_PER_REV / 2;
@@ -21,11 +21,10 @@ Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, ui
 void Motor::begin()
 {
     setMicrosteps(SLOW_MICROSTEPS);
-    _stepper.setPinsInverted(false, false, false);
     _stepper.setAcceleration(MOTOR_ACCEL);
-    _stepper.setMaxSpeed((float)MAX_PULSE_PER_SECOND / 2); // Tweaking this to avoid stall behavior at fast speeds
-    _stepper.setCurrentPosition(0);
-    _stepper.moveTo(0);
+    _stepper.setMaxSpeed(MAX_PULSE_PER_SECOND / 2);
+    _stepper.initPosition(0);
+    _stepper.setTargetPosition(0);
 }
 
 uint32_t Motor::getPosition() const
@@ -40,7 +39,7 @@ uint32_t Motor::getTargetPosition() const
 
 float Motor::getSpeed()
 {
-    return abs(_stepper.speed());
+    return abs(_stepper.getSpeed());
 }
 
 SlewTypeEnum Motor::getSlewType() const
@@ -83,15 +82,12 @@ void Motor::setTargetPosition(uint32_t position)
 
 void Motor::setStepPeriod(uint32_t stepPeriod)
 {
-
     // Debug
     std::ostringstream log;
     log << "Axis: " << int(_axis) << "; Setting step period to: " << stepPeriod;
     _logger->debug(&log);
 
-    _stepPeriod = stepPeriod;
-    float speed = (stepPeriod > 0) ? (float)MAX_PULSE_PER_SECOND / stepPeriod : MAX_PULSE_PER_SECOND;
-    _stepper.setMaxSpeed(speed);
+    _stepPeriod = (stepPeriod <= 4) ? 4 : stepPeriod;
 }
 
 void Motor::setSlewType(SlewTypeEnum type)
@@ -167,7 +163,7 @@ void Motor::setMotion(bool moving)
         else if (getSlewType() == SlewTypeEnum::GOTO)
         {
             // Move as fast as possible
-            setStepPeriod(0);
+            setStepPeriod(6);
 
             // Determine the number of steps at
             // the given direction to move the
@@ -193,14 +189,14 @@ void Motor::setMotion(bool moving)
             if (_speed == SlewSpeedEnum::FAST)
                 numSteps /= HIGH_SPEED_RATIO;
 
-            _stepper.setCurrentPosition(0);
+            _stepper.setPosition(0);
             if (_dir == SlewDirectionEnum::CW)
             {
-                _stepper.moveTo(numSteps);
+                _stepper.setTargetPosition(numSteps);
             }
             else
             {
-                _stepper.moveTo(-numSteps);
+                _stepper.setTargetPosition(-numSteps);
             }
         }
     }
@@ -209,17 +205,17 @@ void Motor::setMotion(bool moving)
         _toStop = true;
 
         // Debug
-        std::ostringstream log;
-        log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.speed() << ", Steps to stop: " << _stepper.stepsToStop();
-        _logger->debug(&log);
+        /*std::ostringstream log;
+        log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.getSpeed() << ", Steps to stop: " << _stepper.stepsToStop();
+        _logger->debug(&log);*/
 
         if (getSlewDirection() == SlewDirectionEnum::CW)
         {
-            _stepper.moveTo(_stepper.currentPosition() + _stepper.stepsToStop());
+            _stepper.setTargetPosition(_stepper.getPosition() + _stepper.stepsToStop());
         }
         else
         {
-            _stepper.moveTo(_stepper.currentPosition() - _stepper.stepsToStop());
+            _stepper.setTargetPosition(_stepper.getPosition() - _stepper.stepsToStop());
         }
     }
 }
@@ -270,27 +266,39 @@ void Motor::tick()
 {
     if (_moving)
     {
-        // Similar to AccelStepper::Run
-        if (_stepper.runSpeed())
+        // Return if we do not wish to perform a step
+        if (useAccel())
         {
+            if (!_stepper.getPulsesPerStep())
+                return;
+            if (++_ticker % _stepper.getPulsesPerStep() > 0)
+                return;
+        }
+        else if (++_ticker % _stepPeriod > 0)
+            return;
+
+        // Do the step
+        _stepper.run();
+
+        // Implement accel / decel (GOTO only)
+        if (useAccel())
             _stepper.computeNewSpeed();
 
-            uint32_t numSteps = 1;
-            if (_speed == SlewSpeedEnum::FAST)
-                numSteps *= HIGH_SPEED_RATIO;
-
-            if (_dir == SlewDirectionEnum::CW)
-            {
-                _position += numSteps;
-                if (_position > _maxPosition)
-                    _position -= MICROSTEPS_PER_REV;
-            }
-            else
-            {
-                _position -= numSteps;
-                if (_position < _minPosition)
-                    _position += MICROSTEPS_PER_REV;
-            }
+        // Adjust position counter
+        uint32_t numSteps = 1;
+        if (_speed == SlewSpeedEnum::FAST)
+            numSteps *= HIGH_SPEED_RATIO;
+        if (_dir == SlewDirectionEnum::CW)
+        {
+            _position += numSteps;
+            if (_position > _maxPosition)
+                _position -= MICROSTEPS_PER_REV;
+        }
+        else
+        {
+            _position -= numSteps;
+            if (_position < _minPosition)
+                _position += MICROSTEPS_PER_REV;
         }
     }
 }
@@ -304,18 +312,22 @@ void Motor::longTick()
         {
             std::ostringstream log;
             log << "Axis: " << int(_axis) << ";";
-            log << " TGT: 0x" << std::hex << _targetPosition << ";";
-            log << " POS: 0x" << std::hex << getPosition() << ";";
+            log << " TGT: 0x" << std::hex << _stepper.getTargetPosition() << ";";
+            log << " POS: 0x" << std::hex << _stepper.getPosition() << ";";
+            log << " DTG: " << std::dec << _stepper.distanceToGo() << ";";
+            log << " SPEED: " << std::dec << _stepper.getSpeed() << ";";
+            log << " PPS: " << std::dec << _stepper.getPulsesPerStep() << ";";
+            log << " STS: " << std::dec << _stepper.stepsToStop() << ";";
             log << " TOSTOP: " << std::dec << _toStop << ";";
             log << " MOVING: " << _moving << ";";
             _logger->debug(&log);
         }*/
 
-        if ((_toStop || _type == SlewTypeEnum::GOTO) && !_stepper.isRunning())
+        if ((_toStop && !useAccel()) || !_stepper.isRunning())
         {
             _toStop = false;
             _moving = false;
-            _stepper.setCurrentPosition(0);
+            _stepper.setPosition(0);
         }
     }
 }
