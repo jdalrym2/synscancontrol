@@ -19,8 +19,9 @@
 #include "CommandHandler.hpp"
 
 #if defined(OTA_UPDATES) || defined(UDP_LOGGING)
-const char *ssid = "CenturyLink3000";
-const char *password = "cy3z46ex7fyhmk";
+const char *ssid = "YOUR_SSID_HERE";
+const char *password = "YOUR_PASSWORD_HERE";
+bool wifiConnected = true;
 #endif
 
 #ifdef UDP_LOGGING
@@ -127,16 +128,17 @@ void setup()
     WiFi.mode(WIFI_STA);
     Serial.println("Starting WiFi...");
     WiFi.begin(ssid, password);
-    while (WiFi.waitForConnectResult() != WL_CONNECTED)
+    wifiConnected = (WiFi.waitForConnectResult() == WL_CONNECTED);
+    if (!wifiConnected)
     {
-        Serial.println("Connection Failed! Rebooting...");
-        delay(5000);
-        ESP.restart();
+        Serial.println("Connection Failed!");
     }
-
-    Serial.println("Ready");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+    else
+    {
+        Serial.println("Ready");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+    }
 #endif
 
 #ifdef UDP_LOGGING
@@ -185,8 +187,7 @@ void setup()
 
                      // Disable hardware timer
                      timerAlarmDisable(tickTimer);
-                     timerDetachInterrupt(tickTimer);
-                 })
+                     timerDetachInterrupt(tickTimer); })
         .onEnd([]()
                { Serial.println("\nEnd"); })
         .onProgress([](unsigned int progress, unsigned int total)
@@ -203,10 +204,10 @@ void setup()
                      else if (error == OTA_RECEIVE_ERROR)
                          Serial.println("Receive Failed");
                      else if (error == OTA_END_ERROR)
-                         Serial.println("End Failed");
-                 });
+                         Serial.println("End Failed"); });
 
-    ArduinoOTA.begin();
+    if (wifiConnected)
+        ArduinoOTA.begin();
 
 #endif
 
@@ -226,6 +227,7 @@ void loop()
     }
 
 #ifdef OTA_UPDATES
-    ArduinoOTA.handle();
+    if (wifiConnected)
+        ArduinoOTA.handle();
 #endif
 }

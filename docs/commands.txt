@@ -1,6 +1,3 @@
-Pulseguide commands:
-TODO
-
 Skywatcher commands:
 E - Set Position
   - Set motor position to command position
