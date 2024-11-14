@@ -62,6 +62,8 @@ AsyncUDP udp;
 #define SERIAL2_RX 16
 #define SERIAL2_TX 17
 
+using namespace SynScanControl;
+
 // Hardware timers
 hw_timer_t *tickTimer = nullptr;
 
@@ -125,6 +127,12 @@ void setup()
 
 #if defined(OTA_UPDATES) || defined(UDP_LOGGING)
     // Connect to WiFi
+    // TODO: this doesn't seem to handle not finding an access point
+    // correctly. However, if it temporarly connects to an access point
+    // and then it is lost, I've found that the code behaves correctly.
+    //
+    // TL;DR For now, disable the WiFi features for use outside of your
+    // WiFi network.
     WiFi.mode(WIFI_STA);
     Serial.println("Starting WiFi...");
     WiFi.begin(ssid, password);

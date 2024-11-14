@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "InterruptStepper.hpp"
 
+using namespace SynScanControl;
+
 InterruptStepper::InterruptStepper(uint8_t STEP, uint8_t DIR, uint32_t FREQ, bool DIR_REVERSE)
 {
     _STEP = STEP;

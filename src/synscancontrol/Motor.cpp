@@ -3,6 +3,8 @@
 
 #include "Motor.hpp"
 
+using namespace SynScanControl;
+
 Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, bool dirReverse, Logger *logger)
 {
     _axis = axis;

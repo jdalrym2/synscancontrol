@@ -1,6 +1,8 @@
 #include "Command.hpp"
 #include "HexConversionUtils.hpp"
 
+using namespace SynScanControl;
+
 AxisEnum Command::parseAxis(char c)
 {
     switch (c)

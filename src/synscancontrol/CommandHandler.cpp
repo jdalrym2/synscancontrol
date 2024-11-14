@@ -1,5 +1,7 @@
 #include "CommandHandler.hpp"
 
+using namespace SynScanControl;
+
 CommandHandler::CommandHandler(HardwareSerial *commSerial,
                                Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger)
 {
