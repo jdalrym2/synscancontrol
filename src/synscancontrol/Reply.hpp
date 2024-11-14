@@ -45,7 +45,7 @@ namespace SynScanControl
 
         void setData(uint32_t data, uint32_t len)
         {
-            HexConversionUtils::toHexString<uint32_t>(data, _data, len);
+            toHexString<uint32_t>(data, _data, len);
         }
 
         void toStringStream(std::ostringstream *s) override
@@ -67,7 +67,7 @@ namespace SynScanControl
 
         void setData(uint32_t data, uint32_t len)
         {
-            HexConversionUtils::toHexString<uint32_t>(data, _data, len);
+            toHexString<uint32_t>(data, _data, len);
         }
 
         void toStringStream(std::ostringstream *s) override

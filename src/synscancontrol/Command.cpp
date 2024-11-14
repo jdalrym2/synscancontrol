@@ -70,7 +70,7 @@ bool SetPositionCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _position = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                _position = parseToHex<uint32_t>(data + 3, 6);
                 _has_init = true;
                 success = true;
             }
@@ -206,7 +206,7 @@ bool SetGotoTargetCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _position = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                _position = parseToHex<uint32_t>(data + 3, 6);
                 _has_init = true;
                 success = true;
             }
@@ -236,7 +236,7 @@ bool SetGotoTargetIncrementCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _increment = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                _increment = parseToHex<uint32_t>(data + 3, 6);
                 _has_init = true;
                 success = true;
             }
@@ -266,7 +266,7 @@ bool SetBreakPointIncrementCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _increment = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                _increment = parseToHex<uint32_t>(data + 3, 6);
                 _has_init = true;
                 success = true;
             }
@@ -296,7 +296,7 @@ bool SetStepPeriodCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _period = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                _period = parseToHex<uint32_t>(data + 3, 6);
                 _has_init = true;
                 success = true;
             }
@@ -398,7 +398,7 @@ bool SetSwitchCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _active = HexConversionUtils::parseToHex<uint32_t>(data + 3, 1);
+                _active = parseToHex<uint32_t>(data + 3, 1);
                 _has_init = true;
                 success = true;
             }
@@ -423,7 +423,7 @@ bool SetAudioguideSpeedCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                uint32_t val = HexConversionUtils::parseToHex<uint32_t>(data + 3, 1);
+                uint32_t val = parseToHex<uint32_t>(data + 3, 1);
                 switch (val)
                 {
                 case 0:
@@ -469,7 +469,7 @@ bool SetPolarLEDBrightnessCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                _value = HexConversionUtils::parseToHex<uint32_t>(data + 3, 2);
+                _value = parseToHex<uint32_t>(data + 3, 2);
                 _has_init = true;
                 success = true;
             }
@@ -553,7 +553,7 @@ bool GetExtendedStatusCommand::parse(const char *data, uint16_t len)
             if (header == (char)_cmd)
             {
                 _axis = parseAxis(data[2]);
-                uint32_t val = HexConversionUtils::parseToHex<uint32_t>(data + 3, 6);
+                uint32_t val = parseToHex<uint32_t>(data + 3, 6);
                 if (val == 1)
                 {
                     _type = StatusType::STATUS_EX;
