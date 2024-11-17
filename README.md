@@ -1,4 +1,4 @@
-# synscancontrol
+# <img src="docs/icon.jpg" alt="synscancontrol icon" width="64"/> synscancontrol
 
 This project is an open source recreation of the motherboard of the popular HEQ-5 (Orion Sirius EQ-G) mount using the SynScan protocol.
 
@@ -46,9 +46,11 @@ I have included all of the PCB development files and images of the components I 
 
 ## Software Details
 
-### OTA Updates
+This project was built in [VS Code](https://code.visualstudio.com/) using the [PlatformIO](https://platformio.org/) extension for embedded devices. See [platformio.ini](platformio.ini) for the specific PlatformIO configuration for this project, including build flags.
 
-### UDP Logging
+### OTA Updates (`-DOTA_UPDATES`)
+
+### UDP Logging (`-DUDP_LOGGING`)
 
 ## Credits
 
