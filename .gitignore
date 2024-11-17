@@ -3,3 +3,4 @@
 .vscode
 .pio
 .pyc
+*.code-workspace
