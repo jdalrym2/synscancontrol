@@ -1,0 +1,14 @@
+5-pin Hand Controller Cable (HC):
+White - LED+
+Brown - 12V in
+Yellow - Serial TX
+Red - Serial RX
+Black - GND
+
+6-Pin Autoguider Cable (AG):
+White - NC
+Brown - GND
+Yellow - +RA (Left)
+Red - +DEC (Up)
+Black - -DEC (Down)
+Blue - -RA (Right)
