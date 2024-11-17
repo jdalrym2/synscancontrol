@@ -1,8 +1,14 @@
 # <img src="docs/icon.jpg" alt="synscancontrol icon" width="64"/> synscancontrol
 
-This project is an open source recreation of the motherboard of the popular HEQ-5 (Orion Sirius EQ-G) mount using the SynScan protocol.
+This project is an open source drop-in replacement for the motherboard of the popular Sky-Watcher HEQ5 (Orion Sirius EQ-G) mount using the SynScan protocol.
 
 ## Features
+
+- Drop-in replacement from the original HEQ5 motherboard
+  - Compatible with the SynScan hand controller
+  - Compatible with EQMOD
+- ESP32-based project with plenty of onboard memory to spare
+  - If you wanted a WiFi or Bluetooth version of the HEQ5, this or [Open-Synscan](https://github.com/vsirvent/Open-Synscan) is a good place to start.
 
 ## TODO
 
@@ -10,15 +16,15 @@ This project is an open source recreation of the motherboard of the popular HEQ-
 
 ## Motivation
 
-My original motherboard broke and the (really expensive) replacement I got from SkyWatcher had a problem and wouldn't drive one motor. SkyWatcher couldn't replicate the problem, and wouldn't replace it since the mount I have is from Orion, not SkyWatcher.
+My original motherboard failed and the (really expensive) replacement I got from Sky-Watcher had a problem and wouldn't drive one motor. Sky-Watcher couldn't replicate the problem, and wouldn't replace it since the mount I have is from Orion, not Sky-Watcher.
 
-...So I designed my own instead to never have this problem again.
+...So I designed my own instead to never have this problem again (it's also much cheaper!).
 
 ## Hardware Details
 
 [**Link to Project on OSHWLab**](https://oshwlab.com/j_dalrym2/synscan-control-rev-1_copy_copy)
 
-The project is based on the [HiLetGo NodeMCU ESP-32S](http://www.hiletgo.com/ProductDetail/1906566.html). Here is an [Amazon link to the one I have](https://www.amazon.com/gp/product/B0718T232Z), though this link is bound to break someday. I will include a chart of this microcontroller's pinout in case a clone of this board matching the same pinout might work.
+The project is based on the [HiLetGo NodeMCU ESP-32S](http://www.hiletgo.com/ProductDetail/1906566.html). Here is an [Amazon link to the one I have](https://www.amazon.com/gp/product/B0718T232Z). I will include a chart of this microcontroller's pinout in case a clone of this board matching the same pinout might work.
 
 Other key hardware components are:
 - 2x DRV8825 stepper motor driver board ([Amazon link](https://www.amazon.com/gp/product/B07XF2LYC8), set the current limiter to about 1.5A)
@@ -52,10 +58,12 @@ This project was built in [VS Code](https://code.visualstudio.com/) using the [P
 
 ### UDP Logging (`-DUDP_LOGGING`)
 
+### Serial Timeout (`-DSERIAL_TIMEOUT`)
+
 ## Credits
 
-- Original HEQ5-ish project
-- AccelStepper
+- [Open-Synscan](https://github.com/vsirvent/Open-Synscan) inspired me to do this project, and a lot of the reverse engineering of the SynScan protocol provided by this product is helpful. A lot of the serial bus logic for this project is similar to Open-Synscan. Licensed under GPLv3.
+- [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/) was really useful to help me understand how you can implement stepper motor acceleration in software. I couldn't use it as-is, but it did prove to be a helpful reference nonetheless. Licensed under GPLv3.
 
 ## License
 
