@@ -301,7 +301,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_AUTOGUIDE_SPEED_CMD:
     {
-        // SetAudioguideSpeedCommand *thisCmd = (SetAudioguideSpeedCommand *)cmd;
+        // SetAutoguideSpeedCommand *thisCmd = (SetAutoguideSpeedCommand *)cmd;
         // TODO: if we want
         reply = new EmptyReply();
         break;

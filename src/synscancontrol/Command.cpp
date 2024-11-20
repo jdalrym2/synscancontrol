@@ -430,12 +430,12 @@ bool SetSwitchCommand::parse(const char *data, uint16_t len)
     return success;
 }
 
-SetAudioguideSpeedCommand::SetAudioguideSpeedCommand()
+SetAutoguideSpeedCommand::SetAutoguideSpeedCommand()
 {
     _cmd = CommandEnum::SET_AUTOGUIDE_SPEED_CMD;
 }
 
-bool SetAudioguideSpeedCommand::parse(const char *data, uint16_t len)
+bool SetAutoguideSpeedCommand::parse(const char *data, uint16_t len)
 {
     bool success = false;
     if (len == MSG_SIZE)
@@ -663,7 +663,7 @@ Command *CommandFactory::parse(const char *data, uint16_t len)
     }
     case (char)CommandEnum::SET_AUTOGUIDE_SPEED_CMD:
     {
-        cmd = new SetAudioguideSpeedCommand();
+        cmd = new SetAutoguideSpeedCommand();
         break;
     }
     case (char)CommandEnum::SET_POLAR_LED_BRIGHTNESS_CMD:

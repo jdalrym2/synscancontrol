@@ -203,14 +203,14 @@ namespace SynScanControl
         bool parse(const char *data, uint16_t len) override;
     };
 
-    class SetAudioguideSpeedCommand : public Command
+    class SetAutoguideSpeedCommand : public Command
     {
     private:
         static const uint16_t MSG_SIZE = 4;
         uint32_t _speed = 1000; // 1000 = x1 speed
 
     public:
-        SetAudioguideSpeedCommand();
+        SetAutoguideSpeedCommand();
 
         bool parse(const char *data, uint16_t len) override;
     };
