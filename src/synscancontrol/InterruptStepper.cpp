@@ -20,6 +20,9 @@
  * Author: Jon Dalrymple
  * Created: 13 November 2024
  * Description: Manages low-level stepper motor hardware logic
+ *
+ * Re-uses code from the AccelStepper project, licensed via GPLv3.
+ * For more info see README.md.
  */
 #include <Arduino.h>
 #include "InterruptStepper.hpp"
@@ -141,13 +144,13 @@ void InterruptStepper::run()
 void InterruptStepper::step()
 {
     GPIO.out_w1ts = ((uint32_t)1 << _STEP); // digitalWrite(_STEP, 1)
-    delayMicroseconds(4);                   // DRV8825 - 1.9us minimum pulse width
+    delayMicroseconds(STEPPER_PULSE_WIDTH_US);
     GPIO.out_w1tc = ((uint32_t)1 << _STEP); // digitalWrite(_STEP, 0)
 }
 
-// distanceToGo() override that supports
-// infinite distances via the STEPPER_[N]INFINITE
-// static members
+// Inspired from AccelStepper:distanceToGo()
+// supports infinite distances via the
+// STEPPER_[N]INFINITE static members
 int32_t InterruptStepper::distanceToGo()
 {
     if (_targetPos >= STEPPER_INFINITE)

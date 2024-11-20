@@ -27,12 +27,11 @@
 #include <Arduino.h>
 
 #include "Command.hpp"
+#include "Constants.hpp"
 #include "Motor.hpp"
 #include "PolarScopeLED.hpp"
 #include "Reply.hpp"
 #include "Logger.hpp"
-
-#define COMMAND_BUFFER_SIZE 256
 
 namespace SynScanControl
 {
@@ -55,7 +54,6 @@ namespace SynScanControl
         const char _endChar = '\r';
         bool _serialStarted = false;
         uint32_t _timeoutCounter = 0;
-        const uint32_t _timeoutMillis = 5000;
 
         Logger *_logger;
 

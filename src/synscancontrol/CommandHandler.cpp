@@ -125,15 +125,13 @@ void CommandHandler::processSerial()
     }
 
     // Serial timeout handling
-#ifdef SERIAL_TIMEOUT
-    if (_serialStarted && (millis() - _timeoutCounter > _timeoutMillis))
+    if (_serialStarted && (millis() - _timeoutCounter > SERIAL_TIMEOUT_MS))
     {
         _logger->info("Serial timeout reached!");
         _serialStarted = false;
         _raMotor->setMotion(false);
         _decMotor->setMotion(false);
     }
-#endif
 }
 
 void CommandHandler::clearBuffer()
@@ -317,7 +315,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetCountsPerRevCommand *thisCmd = (GetCountsPerRevCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->MICROSTEPS_PER_REV, 6);
+        data_reply->setData(MICROSTEPS_PER_REV, 6);
         reply = data_reply;
         break;
     }
@@ -325,7 +323,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetTimerFreqCommand *thisCmd = (GetTimerFreqCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->MAX_PULSE_PER_SECOND, 6);
+        data_reply->setData(MAX_PULSE_PER_SECOND, 6);
         reply = data_reply;
         break;
     }
@@ -363,7 +361,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
         status_reply->setInitDone(true);
         status_reply->setBlocked(false);
 
-        // TODO: replace with motor state variables for this axis
         status_reply->setRunning(thisMotor->isMoving());
         status_reply->setSlewMode(thisMotor->getSlewType());
         status_reply->setSpeedMode(thisMotor->getSlewSpeed());
@@ -375,7 +372,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetHighSpeedRatioCommand *thisCmd = (GetHighSpeedRatioCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->HIGH_SPEED_RATIO, 2);
+        data_reply->setData(HIGH_SPEED_RATIO, 2);
         reply = data_reply;
         break;
     }
@@ -383,7 +380,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetSiderealPeriodCommand *thisCmd = (GetSiderealPeriodCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->SIDEREAL_PULSE_PER_STEP, 6);
+        data_reply->setData(SIDEREAL_PULSE_PER_STEP, 6);
         reply = data_reply;
         break;
     }

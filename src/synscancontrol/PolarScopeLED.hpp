@@ -25,7 +25,9 @@
 #define POLARSCOPELED_H
 
 #include <stdint.h>
-#include <Logger.hpp>
+
+#include "Constants.hpp"
+#include "Logger.hpp"
 
 namespace SynScanControl
 {
@@ -60,7 +62,7 @@ namespace SynScanControl
         uint8_t _pin;
         uint8_t _pwm_channel;
         Logger *_logger;
-        uint8_t _brightness = 64;
+        uint8_t _brightness = POLARSCOPE_INIT_BRIGHTNESS;
     };
 } // namespace SynScanControl
 

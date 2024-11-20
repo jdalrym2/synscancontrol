@@ -75,8 +75,6 @@ bool GetterCommand::parse(const char *data, uint16_t len)
     return success;
 }
 
-// TODO: pulseguide support
-
 SetPositionCommand::SetPositionCommand()
 {
     _cmd = CommandEnum::SET_POSITION_CMD;

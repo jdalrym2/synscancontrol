@@ -12,7 +12,8 @@ This project is an open source drop-in replacement for the motherboard of the po
 
 ## TODO
 
-- Implement the autoguider port interface in software (does anybody use this?)
+- Implement PEC training / PEC period in firmware
+- Implement the autoguider port interface in firmware (does anybody use this nowadays?)
 
 ## Motivation
 
@@ -58,12 +59,10 @@ This project was built in [VS Code](https://code.visualstudio.com/) using the [P
 
 ### UDP Logging (`-DUDP_LOGGING`)
 
-### Serial Timeout (`-DSERIAL_TIMEOUT`)
-
 ## Credits
 
 - [Open-Synscan](https://github.com/vsirvent/Open-Synscan) inspired me to do this project, and a lot of the reverse engineering of the SynScan protocol provided by this product is helpful. A lot of the serial bus logic for this project is similar to Open-Synscan. Licensed under GPLv3.
-- [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/) was really useful to help me understand how you can implement stepper motor acceleration in software. I couldn't use it as-is, but it did prove to be a helpful reference nonetheless. Licensed under GPLv3.
+- [AccelStepper](https://www.airspayce.com/mikem/arduino/AccelStepper/) was really useful to help me understand how you can implement stepper motor acceleration in software. I couldn't use it as-is, but I did directly borrow code from it. Licensed under GPLv3.
 
 ## License
 

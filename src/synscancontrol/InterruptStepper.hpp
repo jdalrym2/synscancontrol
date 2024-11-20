@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <limits.h>
+#include "Constants.hpp"
 #include "Enums.hpp"
 
 namespace SynScanControl
