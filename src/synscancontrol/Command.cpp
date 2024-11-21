@@ -19,7 +19,10 @@
  *
  * Author: Jon Dalrymple
  * Created: 13 November 2024
- * Description: Provides parsing functions for SynScan serial commands
+ * Description: Provides parsing functions for SynScan serial commands.
+ *
+ * Much of this code is directly inspired from Open-Synscan, so refer to
+ * that project as well if something is confusing.
  */
 #include "Command.hpp"
 #include "HexConversionUtils.hpp"

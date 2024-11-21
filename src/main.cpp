@@ -21,71 +21,28 @@
  * Created: 13 November 2024
  * Description: synscancontrol firmware entrypoint
  */
+#define NO_GLOBAL_SERIAL // allows us to rename Serial / Serial2 to more meaningful names
+
+#include <WiFi.h>
 #include <Arduino.h>
 
-#ifdef OTA_UPDATES
-#include <WiFi.h>
-#include <ESPmDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
-#endif
-
-#ifdef UDP_LOGGING
-#include <WiFi.h>
-#include <AsyncUDP.h>
-#endif
-
+#include "Constants.hpp"
 #include "Logger.hpp"
 #include "Enums.hpp"
 #include "Motor.hpp"
+#include "OTAUpdate.hpp"
 #include "PolarScopeLED.hpp"
 #include "CommandHandler.hpp"
-
-#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
-const char *ssid = "YOUR_SSID_HERE";
-const char *password = "YOUR_PASSWORD_HERE";
-bool wifiConnected = true;
-#endif
-
-#ifdef UDP_LOGGING
-AsyncUDP udp;
-#endif
-
-// RA motor pinouts
-#define RA_M0 12
-#define RA_M1 14
-#define RA_M2 27
-#define RA_STEP 26
-#define RA_DIR 25
-
-// DEC motor pinouts
-#define DEC_M0 33
-#define DEC_M1 32
-#define DEC_M2 5
-#define DEC_STEP 18
-#define DEC_DIR 19
-
-// Autoguider pinouts
-#define RA_POS_PIN 36
-#define DEC_POS_PIN 39
-#define RA_NEG_PIN 34
-#define DEC_NEG_PIN 35
-
-// LED pinouts
-#define PWR_LED 4
-#define SCOPE_LED 15
-#define BUILT_IN_LED 2
-
-// LED PWM channels
-#define PWR_LED_PWM 0
-#define SCOPE_LED_PWM 1
-#define BUILT_IN_LED_PWM 2
-
-// Serial pinouts
-#define SERIAL2_RX 16
-#define SERIAL2_TX 17
+#include "UDPLogger.hpp"
 
 using namespace SynScanControl;
+
+// Serial ports
+HardwareSerial SerialLogger(SERIAL_LOGGER_UART);
+HardwareSerial SerialSynScan(SERIAL_SYNSCAN_UART);
+
+// State variables
+bool wifiConnected = false;
 
 // Hardware timers
 hw_timer_t *tickTimer = nullptr;
@@ -104,21 +61,18 @@ Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x
 PolarScopeLED polarScopeLED(SCOPE_LED, SCOPE_LED_PWM, &logger);
 
 // Serial Command handler
-CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &polarScopeLED, &logger);
+CommandHandler cmdHandler(&SerialSynScan, &raMotor, &decMotor, &polarScopeLED, &logger);
 
 // Motor fast tick (hardware interrupt)
 void tick()
 {
-#ifndef UDP_LOGGING
     decMotor.tick();
     raMotor.tick();
-#endif
 }
 
 // Motor slow tick (loop)
 void longTick()
 {
-
     decMotor.longTick();
     raMotor.longTick();
 }
@@ -145,8 +99,8 @@ void setup()
     pinMode(DEC_NEG_PIN, INPUT);
 
     // Setup serial ports
-    Serial.begin(9600);
-    Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    SerialLogger.begin(115200);
+    SerialSynScan.begin(9600, SERIAL_8N1, SERIAL_SYNSCAN_RX, SERIAL_SYNSCAN_TX);
 
 #if defined(OTA_UPDATES) || defined(UDP_LOGGING)
     // Connect to WiFi
@@ -157,23 +111,19 @@ void setup()
     // TL;DR For now, disable the WiFi features for use outside of your
     // WiFi network.
     WiFi.mode(WIFI_STA);
-    Serial.println("Starting WiFi...");
+    SerialLogger.println("Starting WiFi...");
     WiFi.begin(ssid, password);
     wifiConnected = (WiFi.waitForConnectResult() == WL_CONNECTED);
     if (!wifiConnected)
     {
-        Serial.println("Connection Failed!");
+        SerialLogger.println("Connection Failed!");
     }
     else
     {
-        Serial.println("Ready");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
+        SerialLogger.println("Ready");
+        SerialLogger.print("IP address: ");
+        SerialLogger.println(WiFi.localIP());
     }
-#endif
-
-#ifdef UDP_LOGGING
-    logger.addUDPHandler(&udp, 6309);
 #endif
 
     // Setup LED pins
@@ -201,45 +151,17 @@ void setup()
     longTickTimer = millis();
 
     // Configure logger
-    logger.addHardwareSerialHandler(&Serial);
+    logger.addHandler(new HardwareSerialLoggerHandler(&SerialLogger));
+
+#ifdef UDP_LOGGING
+    logger.addHandler(new UDPLoggerHandler(UDP_LOGGER_PORT, &SerialLogger));
+#endif
 
 #ifdef OTA_UPDATES
-    ArduinoOTA
-        .onStart([]()
-                 {
-                     String type;
-                     if (ArduinoOTA.getCommand() == U_FLASH)
-                         type = "sketch";
-                     else // U_SPIFFS
-                         type = "filesystem";
-
-                     // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-                     Serial.println("Start updating " + type);
-
-                     // Disable hardware timer
-                     timerAlarmDisable(tickTimer);
-                     timerDetachInterrupt(tickTimer); })
-        .onEnd([]()
-               { Serial.println("\nEnd"); })
-        .onProgress([](unsigned int progress, unsigned int total)
-                    { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); })
-        .onError([](ota_error_t error)
-                 {
-                     Serial.printf("Error[%u]: ", error);
-                     if (error == OTA_AUTH_ERROR)
-                         Serial.println("Auth Failed");
-                     else if (error == OTA_BEGIN_ERROR)
-                         Serial.println("Begin Failed");
-                     else if (error == OTA_CONNECT_ERROR)
-                         Serial.println("Connect Failed");
-                     else if (error == OTA_RECEIVE_ERROR)
-                         Serial.println("Receive Failed");
-                     else if (error == OTA_END_ERROR)
-                         Serial.println("End Failed"); });
-
+    // Setup OTA
+    setupOTA(tickTimer, &SerialLogger);
     if (wifiConnected)
-        ArduinoOTA.begin();
-
+        beginOTA();
 #endif
 
     logger.debug("Logging started!");
@@ -259,6 +181,6 @@ void loop()
 
 #ifdef OTA_UPDATES
     if (wifiConnected)
-        ArduinoOTA.handle();
+        handleOTA();
 #endif
 }

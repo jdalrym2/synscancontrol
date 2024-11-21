@@ -23,6 +23,10 @@
  *
  * Re-uses code from the AccelStepper project, licensed via GPLv3.
  * For more info see README.md.
+ *
+ * Cited equations are referring to the following paper:
+ * Austin, D. (2005). Generate stepper-motor speed profiles in real time.
+ * Embedded Systems Programming, 1.
  */
 #include <Arduino.h>
 #include "InterruptStepper.hpp"

@@ -38,13 +38,13 @@ namespace SynScanControl
     class CommandHandler
     {
     public:
-        CommandHandler(HardwareSerial *commSerial, Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger);
+        CommandHandler(HardwareSerial *serial, Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger);
         void processSerial();
         void clearBuffer();
         Motor *getMotorForAxis(AxisEnum axis);
 
     private:
-        HardwareSerial *_commSerial;
+        HardwareSerial *_serial;
         Motor *_raMotor;
         Motor *_decMotor;
         PolarScopeLED *_polarScopeLED;

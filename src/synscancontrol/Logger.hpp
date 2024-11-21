@@ -28,8 +28,6 @@
 #include <stdint.h>
 #include <sstream>
 
-#include <AsyncUDP.h>
-
 enum class LoggingLevel
 {
     LOG_DEBUG,
@@ -43,7 +41,7 @@ class LoggerHandler
 {
 public:
     LoggerHandler() {};
-    virtual void log(const char *msg);
+    virtual void log(const char *msg) = 0;
 };
 
 class HardwareSerialLoggerHandler : public LoggerHandler
@@ -59,40 +57,15 @@ private:
     HardwareSerial *_s = nullptr;
 };
 
-class UDPLoggerHandler : public LoggerHandler
-{
-public:
-    UDPLoggerHandler(AsyncUDP *udp, uint16_t udpPort)
-    {
-        _udpPort = udpPort;
-        _udp = udp;
-        if (udp->connect(IPAddress(255, 255, 255, 255), _udpPort))
-        {
-            Serial.println("UDP connected.");
-        }
-    }
-    void log(const char *msg) override
-    {
-        _udp->broadcastTo(msg, _udpPort);
-    }
-
-private:
-    uint16_t _udpPort = 0;
-    AsyncUDP *_udp;
-};
-
 class Logger
 {
 public:
     Logger() {};
-    void addHardwareSerialHandler(HardwareSerial *s)
+
+    void addHandler(LoggerHandler *handler)
     {
-        _addHandler(new HardwareSerialLoggerHandler(s));
-    };
-    void addUDPHandler(AsyncUDP *udp, uint16_t udpPort)
-    {
-        _addHandler(new UDPLoggerHandler(udp, udpPort));
-    };
+        _handlerList.push_back(handler);
+    }
     void debug(const char *msg)
     {
         return _log(LoggingLevel::LOG_DEBUG, msg);
@@ -136,11 +109,7 @@ public:
 
 private:
     std::vector<LoggerHandler *> _handlerList;
-    char buffer[2048];
-    void _addHandler(LoggerHandler *handler)
-    {
-        _handlerList.push_back(handler);
-    }
+    char buffer[2048]; // TODO: enable larger buffer?
     void _log(LoggingLevel level, const char *msg)
     {
         switch (level)

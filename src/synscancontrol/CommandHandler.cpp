@@ -20,15 +20,18 @@
  * Author: Jon Dalrymple
  * Created: 13 November 2024
  * Description: Provides business logic for responding to SynScan commands
+ *
+ * Much of this code is directly inspired from Open-Synscan, so refer to
+ * that project as well if something is confusing.
  */
 #include "CommandHandler.hpp"
 
 using namespace SynScanControl;
 
-CommandHandler::CommandHandler(HardwareSerial *commSerial,
+CommandHandler::CommandHandler(HardwareSerial *serial,
                                Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger)
 {
-    _commSerial = commSerial;
+    _serial = serial;
     _raMotor = raMotor;
     _decMotor = decMotor;
     _polarScopeLED = polarScopeLED;
@@ -38,14 +41,14 @@ CommandHandler::CommandHandler(HardwareSerial *commSerial,
 void CommandHandler::processSerial()
 {
     // Process available serial
-    while (_commSerial->available() > 0)
+    while (_serial->available() > 0)
     {
         // We are processing serial!
         _serialStarted = true;
         _timeoutCounter = millis();
 
         // Read in a character
-        char inChar = _commSerial->read();
+        char inChar = _serial->read();
 
         // If it's the start character, clear the buffer
         if (inChar == _startChar)
@@ -80,7 +83,7 @@ void CommandHandler::processSerial()
                         reply->toStringStream(&log);
                         _logger->debug(&log);*/
 
-                        reply->send(_commSerial);
+                        reply->send(_serial);
                     }
                     else
                     {

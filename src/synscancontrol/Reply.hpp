@@ -247,15 +247,15 @@ namespace SynScanControl
     class ExtendedStatusReply : public Reply
     {
     private:
-#define PEC_TRAINING 1
-#define PEC_TRACKING 2
-#define SUPPORT_DUAL_ENC 1
-#define SUPPORT_PPEC 2
-#define SUPPORT_ORIGINAL_POSITION_IDX 4
-#define SUPPORT_EQAZ_MODE 8
-#define HAS_POLAR_LED 1
-#define TWO_AXES_SEPARATE 2
-#define SUPPORT_TORQUE 3
+        static constexpr uint8_t PEC_TRAINING = 1;
+        static constexpr uint8_t PEC_TRACKING = 2;
+        static constexpr uint8_t SUPPORT_DUAL_ENC = 1;
+        static constexpr uint8_t SUPPORT_PPEC = 2;
+        static constexpr uint8_t SUPPORT_ORIGINAL_POSITION_IDX = 4;
+        static constexpr uint8_t SUPPORT_EQAZ_MODE = 8;
+        static constexpr uint8_t HAS_POLAR_LED = 1;
+        static constexpr uint8_t TWO_AXES_SEPARATE = 2;
+        static constexpr uint8_t SUPPORT_TORQUE = 3;
 
         uint8_t b0 = 0;
         uint8_t b1 = 0;
