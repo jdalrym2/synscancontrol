@@ -55,9 +55,21 @@ I have included all of the PCB development files and images of the components I 
 
 This project was built in [VS Code](https://code.visualstudio.com/) using the [PlatformIO](https://platformio.org/) extension for embedded devices. See [platformio.ini](platformio.ini) for the specific PlatformIO configuration for this project, including build flags.
 
+The basic steps for building this project are as follows:
+1. Get [VS Code](https://code.visualstudio.com/) and install the [PlatformIO IDE](https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide) extension. Restart VS Code.
+2. Load the project. PlatformIO should automatically install the necessary dependencies (e.g. espressif32 / arduinoespressif32) and configure the project.
+3. Configure desired build flags and upload method in [platformio.ini](platformio.ini).
+4. Use PlatformIO's build and upload buttons to build the project!
+
 ### OTA Updates (`-DOTA_UPDATES`)
+Allows over-the-air (OTA) updates via WiFi. Must configure WiFi SSID and password in [Constants.hpp](src/synscancontrol/Constants.hpp) and, after upload, configure the OTA settings in [platformio.ini](platformio.ini) appropriately, e.g.:
+```ini
+upload_protocol = espota
+upload_port = 192.168.0.102  ;  IP address, logged via serial by the firmware on WiFi connect
+```
 
 ### UDP Logging (`-DUDP_LOGGING`)
+Allows debug logging via multicast UDP. Must configure WiFi SSID, password, and UDP port in [Constants.hpp](src/synscancontrol/Constants.hpp). After upload, see [udp_receiver.py](tools/udp_receiver.py) to view the debug log output. This script requires a basic Python 3.x environment with no additional dependencies.
 
 ## Credits
 
