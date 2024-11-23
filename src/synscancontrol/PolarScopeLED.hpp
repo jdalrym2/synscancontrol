@@ -44,7 +44,7 @@ namespace SynScanControl
         void begin()
         {
             ledcAttachPin(_pin, _pwm_channel);
-            ledcSetup(_pwm_channel, 5000, 8);
+            ledcSetup(_pwm_channel, POLARSCOPE_PWM_FREQ, 8);
             setBrightness(_brightness);
         }
 

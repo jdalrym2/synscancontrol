@@ -27,6 +27,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include <sstream>
+#include <vector>
 
 enum class LoggingLevel
 {
