@@ -1,6 +1,6 @@
 # <img src="docs/icon.jpg" alt="synscancontrol icon" width="64"/> synscancontrol
 
-This project is an open source drop-in replacement for the motherboard of the popular Sky-Watcher HEQ5 (Orion Sirius EQ-G) mount using the SynScan protocol.
+This project is an open source drop-in replacement for the motherboard of the popular Sky-Watcher HEQ5 (Orion Sirius EQ-G) mount based on the ESP-32 and using the SynScan protocol.
 
 ## Features
 
