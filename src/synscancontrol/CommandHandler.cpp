@@ -60,9 +60,9 @@ void CommandHandler::processSerial()
         if (inChar == _endChar && _buffer_idx > 2)
         {
             // Log the command we got
-            /*std::ostringstream log;
+            std::ostringstream log;
             log << "Received command: " << _buffer;
-            _logger->debug(&log);*/
+            _logger->debug(&log);
 
             // Process the message and get a reply
             Command *cmd = CommandFactory::parse(_buffer, _buffer_idx);
@@ -78,10 +78,10 @@ void CommandHandler::processSerial()
                     if (reply)
                     {
                         // Log the reply we are giving
-                        /*std::ostringstream log;
+                        std::ostringstream log;
                         log << "Sending reply: ";
                         reply->toStringStream(&log);
-                        _logger->debug(&log);*/
+                        _logger->debug(&log);
 
                         reply->send(_serial);
                     }

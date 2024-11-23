@@ -230,9 +230,9 @@ void Motor::setMotion(bool moving)
         _toStop = true;
 
         // Debug
-        /*std::ostringstream log;
+        std::ostringstream log;
         log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.getSpeed() << ", Steps to stop: " << _stepper.stepsToStop();
-        _logger->debug(&log);*/
+        _logger->debug(&log);
 
         if (getSlewDirection() == SlewDirectionEnum::CW)
         {
@@ -332,7 +332,7 @@ void Motor::longTick()
 {
     if (_moving)
     {
-        // Debug
+        // NOTE: this is a bit too verbose to keep enabled!
         /*if (int(_axis) == 2)
         {
             std::ostringstream log;

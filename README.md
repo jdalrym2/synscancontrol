@@ -1,6 +1,6 @@
 # <img src="docs/icon.jpg" alt="synscancontrol icon" width="64"/> synscancontrol
 
-This project is an open source drop-in replacement for the motherboard of the popular Sky-Watcher HEQ5 (Orion Sirius EQ-G) mount based on the ESP-32 and using the SynScan protocol.
+This project is an open source drop-in replacement for the motherboard of the popular Sky-Watcher HEQ5 (Orion Sirius EQ-G) mount based on the ESP32 and using the SynScan protocol.
 
 ## Features
 
@@ -60,6 +60,9 @@ The basic steps for building this project are as follows:
 2. Load the project. PlatformIO should automatically install the necessary dependencies (e.g. espressif32 / arduinoespressif32) and configure the project.
 3. Configure desired build flags and upload method in [platformio.ini](platformio.ini).
 4. Use PlatformIO's build and upload buttons to build the project!
+
+### Serial Debugging (`-DSERIAL_DEBUG`)
+When enabled, print debugging information to the device's serial port. Disable when not in use to prevent the MCU from wasting time printing out to the serial port.
 
 ### OTA Updates (`-DOTA_UPDATES`)
 Allows over-the-air (OTA) updates via WiFi. Must configure WiFi SSID and password in [Constants.hpp](src/synscancontrol/Constants.hpp) and, after upload, configure the OTA settings in [platformio.ini](platformio.ini) appropriately, e.g.:

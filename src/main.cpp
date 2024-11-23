@@ -21,10 +21,19 @@
  * Created: 13 November 2024
  * Description: synscancontrol firmware entrypoint
  */
-#define NO_GLOBAL_SERIAL // allows us to rename Serial / Serial2 to more meaningful names
+// allows us to rename Serial / Serial2 to more meaningful names
+#define NO_GLOBAL_SERIAL
 
-#include <WiFi.h>
+// Make a USE_WIFI define for convenience
+#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
+#define USE_WIFI
+#endif
+
 #include <Arduino.h>
+
+#ifdef USE_WIFI
+#include <Wifi.h>
+#endif
 
 #include "Constants.hpp"
 #include "Logger.hpp"
@@ -102,28 +111,11 @@ void setup()
     SerialLogger.begin(115200);
     SerialSynScan.begin(9600, SERIAL_8N1, SERIAL_SYNSCAN_RX, SERIAL_SYNSCAN_TX);
 
-#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
-    // Connect to WiFi
-    // TODO: this doesn't seem to handle not finding an access point
-    // correctly. However, if it temporarly connects to an access point
-    // and then it is lost, I've found that the code behaves correctly.
-    //
-    // TL;DR For now, disable the WiFi features for use outside of your
-    // WiFi network.
-    WiFi.mode(WIFI_STA);
+#ifdef USE_WIFI
+    // Async WiFi setup (we don't wait for it to connect)
     SerialLogger.println("Starting WiFi...");
+    WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
-    wifiConnected = (WiFi.waitForConnectResult() == WL_CONNECTED);
-    if (!wifiConnected)
-    {
-        SerialLogger.println("Connection Failed!");
-    }
-    else
-    {
-        SerialLogger.println("Ready");
-        SerialLogger.print("IP address: ");
-        SerialLogger.println(WiFi.localIP());
-    }
 #endif
 
     // Setup LED pins
@@ -151,7 +143,9 @@ void setup()
     longTickTimer = millis();
 
     // Configure logger
+#ifdef SERIAL_DEBUG
     logger.addHandler(new HardwareSerialLoggerHandler(&SerialLogger));
+#endif
 
 #ifdef UDP_LOGGING
     logger.addHandler(new UDPLoggerHandler(UDP_LOGGER_PORT, &SerialLogger));
@@ -180,7 +174,7 @@ void loop()
     }
 
 #ifdef OTA_UPDATES
-    if (wifiConnected)
+    if (WiFi.status() == WL_CONNECTED)
         handleOTA();
 #endif
 }
