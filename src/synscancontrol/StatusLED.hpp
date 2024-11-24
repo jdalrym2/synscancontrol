@@ -26,6 +26,8 @@
 
 #include <stdint.h>
 
+#include <Arduino.h>
+
 #include "Constants.hpp"
 #include "Logger.hpp"
 
@@ -34,35 +36,63 @@ namespace SynScanControl
     class StatusLED
     {
     public:
+        /* We'll do something clever and use this enum as a LUT for how to blink the LED.
+         * We'll cycle through 8 (status), where the LED on/off state is determined by the
+         * corresponding bit.
+         */
+        enum class BlinkStatus
+        {
+            BLINK_SLOW = (uint8_t)0b11110000,
+            BLINK_FAST = (uint8_t)0b11111110,
+            NONE = (uint8_t)0b11111111
+        };
+
+    public:
         StatusLED(uint8_t PIN, uint8_t PWM_CHANNEL, Logger *logger)
         {
             _pin = PIN;
             _pwm_channel = PWM_CHANNEL;
             _logger = logger;
+            _counter = 0;
+            _lut = (uint8_t)BlinkStatus::NONE;
+
+            _timerConfig.arg = this;
+            _timerConfig.callback = reinterpret_cast<esp_timer_cb_t>(tick);
+            _timerConfig.dispatch_method = ESP_TIMER_TASK;
+            _timerConfig.name = "StatusLED::tick";
+        };
+
+        inline uint8_t getPWMChannel() { return _pwm_channel; }
+        inline uint8_t getLUT() { return _lut; }
+        inline void setBlinkStatus(BlinkStatus status) { _lut = (uint8_t)status; }
+        inline uint8_t incrementCounter()
+        {
+            _counter = (_counter + 1) % 8;
+            return _counter;
         };
 
         void begin()
         {
+            ledcSetup(_pwm_channel, 5000, 8);
             ledcAttachPin(_pin, _pwm_channel);
-            ledcSetup(_pwm_channel, POLARSCOPE_PWM_FREQ, 8);
-            setBrightness(_brightness);
+            esp_timer_create(&_timerConfig, &_timer);
+            esp_timer_start_periodic(_timer, 200000);
         }
 
-        void setBrightness(uint8_t pwm)
+        static void tick(void *arg)
         {
-            // Log
-            std::ostringstream log;
-            log << "Setting polar scope LED PWM to: 0x" << std::hex << int(pwm);
-            _logger->debug(&log);
-
-            ledcWrite(_pwm_channel, pwm);
+            StatusLED *obj = (StatusLED *)arg;
+            ledcWrite(obj->getPWMChannel(), 255 * ((obj->getLUT() >> obj->incrementCounter()) & 1));
         }
 
     private:
         uint8_t _pin;
         uint8_t _pwm_channel;
         Logger *_logger;
-        uint8_t _brightness = POLARSCOPE_INIT_BRIGHTNESS;
+        volatile uint8_t _counter;
+        uint8_t _lut;
+        esp_timer_handle_t _timer;
+        esp_timer_create_args_t _timerConfig;
     };
 } // namespace SynScanControl
 

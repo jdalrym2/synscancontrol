@@ -32,7 +32,7 @@
 #include <Arduino.h>
 
 #ifdef USE_WIFI
-#include <Wifi.h>
+#include <WiFi.h>
 #endif
 
 #include "Constants.hpp"
@@ -41,6 +41,7 @@
 #include "Motor.hpp"
 #include "OTAUpdate.hpp"
 #include "PolarScopeLED.hpp"
+#include "StatusLED.hpp"
 #include "CommandHandler.hpp"
 #include "UDPLogger.hpp"
 
@@ -65,6 +66,9 @@ Logger logger;
 // Motors
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, false, &logger);
 Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x913640, true, &logger);
+
+// Power / Status LED
+StatusLED statusLED(PWR_LED, PWR_LED_PWM, &logger);
 
 // Polar Scope LED
 PolarScopeLED polarScopeLED(SCOPE_LED, SCOPE_LED_PWM, &logger);
@@ -92,6 +96,9 @@ void setup()
     setCpuFrequencyMhz(240);
 
     // Set output pins
+    pinMode(PWR_LED, OUTPUT);
+    pinMode(SCOPE_LED, OUTPUT);
+    pinMode(BUILT_IN_LED, OUTPUT);
     pinMode(RA_M0, OUTPUT);
     pinMode(RA_M1, OUTPUT);
     pinMode(RA_M2, OUTPUT);
@@ -111,23 +118,13 @@ void setup()
     SerialLogger.begin(115200);
     SerialSynScan.begin(9600, SERIAL_8N1, SERIAL_SYNSCAN_RX, SERIAL_SYNSCAN_TX);
 
-#ifdef USE_WIFI
-    // Async WiFi setup (we don't wait for it to connect)
-    SerialLogger.println("Starting WiFi...");
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-#endif
-
     // Setup LED pins
-    polarScopeLED.begin(); // handles polar scope LED
-    ledcAttachPin(PWR_LED, PWR_LED_PWM);
-    ledcSetup(PWR_LED_PWM, 5000, 8);
-    ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
-    ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
+    polarScopeLED.begin();
+    statusLED.begin();
 
-    // Static brightness for now
-    // We can do way cooler things to show status, etc, later
-    ledcWrite(PWR_LED_PWM, 255);
+    // Built-in LED unused atm
+    ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
+    ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
 
     // Setup motor tick timers
     tickTimer = timerBegin(0, 80, true);
@@ -139,8 +136,16 @@ void setup()
     decMotor.begin();
     raMotor.begin();
 
-    // Setup slow timer
+    // Setup slow non-interrupt timer
     longTickTimer = millis();
+
+#ifdef USE_WIFI
+    // Async WiFi setup (we don't wait for it to connect)
+    SerialLogger.println("Starting WiFi...");
+    statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_SLOW);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+#endif
 
     // Configure logger
 #ifdef SERIAL_DEBUG
@@ -166,7 +171,23 @@ void loop()
     // Process serial port
     cmdHandler.processSerial();
 
-    // Process slow (long tick) timer
+// Check WiFi status
+#ifdef USE_WIFI
+    if (!wifiConnected && WiFi.status() == WL_CONNECTED)
+    {
+        SerialLogger.println("WiFi connected");
+        wifiConnected = true;
+        statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_FAST);
+    }
+    else if (wifiConnected && WiFi.status() != WL_CONNECTED)
+    {
+        SerialLogger.println("WiFi disconnected");
+        wifiConnected = false;
+        statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_SLOW);
+    }
+#endif
+
+    // Process slow (long tick) non-interrupt timer
     if (millis() - longTickTimer > 100)
     {
         longTickTimer = millis();
@@ -174,7 +195,7 @@ void loop()
     }
 
 #ifdef OTA_UPDATES
-    if (WiFi.status() == WL_CONNECTED)
+    if (wifiConnected)
         handleOTA();
 #endif
 }

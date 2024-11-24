@@ -38,15 +38,15 @@ public:
     UDPLoggerHandler(uint16_t udpPort, HardwareSerial *s = nullptr)
     {
         _udpPort = udpPort;
-        if (_udp->connect(IPAddress(255, 255, 255, 255), _udpPort))
+        /*if (_udp->connect(IPAddress(255, 255, 255, 255), _udpPort))
         {
             if (s != nullptr)
                 s->println("UDP connected");
-        }
+        }*/
     }
     void log(const char *msg) override
     {
-        _udp->broadcastTo(msg, _udpPort);
+        // _udp->broadcastTo(msg, _udpPort);
     }
 
 private:
