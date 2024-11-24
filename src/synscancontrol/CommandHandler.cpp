@@ -127,6 +127,7 @@ void CommandHandler::processSerial()
         }
     }
 
+#ifdef SERIAL_TIMEOUT
     // Serial timeout handling
     if (_serialStarted && (millis() - _timeoutCounter > SERIAL_TIMEOUT_MS))
     {
@@ -135,6 +136,7 @@ void CommandHandler::processSerial()
         _raMotor->setMotion(false);
         _decMotor->setMotion(false);
     }
+#endif
 }
 
 void CommandHandler::clearBuffer()

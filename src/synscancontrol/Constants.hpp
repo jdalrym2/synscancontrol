@@ -50,6 +50,7 @@ namespace SynScanControl
      */
     constexpr uint16_t STEPPER_PULSE_WIDTH_US = 4;
 
+#ifdef SERIAL_TIMEOUT
     /* Halt the motors if we don't get any serial
      * commands in this amount of milliseconds.
      *
@@ -58,6 +59,7 @@ namespace SynScanControl
      * than this interval.
      */
     constexpr uint32_t SERIAL_TIMEOUT_MS = 3000;
+#endif
 
     /* Motor microstepping parameters
      * We will alternate between slow / fast microstepping

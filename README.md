@@ -61,6 +61,9 @@ The basic steps for building this project are as follows:
 3. Configure desired build flags and upload method in [platformio.ini](platformio.ini).
 4. Use PlatformIO's build and upload buttons to build the project!
 
+### Serial Timeout (`-DSERIAL_TIMEOUT`)
+When enabled, the motors will automatically stop when no serial port traffic is detected after `SERIAL_TIMEOUT_MS` (as set in [Constants.hpp](src/synscancontrol/Constants.hpp)). This prevents the motors from moving indefinitely in the event serial communication is lost while slewing. While this sounds good in practice, this doesn't work well with the SynScan hand controller since it isn't constantly querying status, and so I keep it disabled by default.
+
 ### Serial Debugging (`-DSERIAL_DEBUG`)
 When enabled, print debugging information to the device's serial port. Disable when not in use to prevent the MCU from wasting time printing out to the serial port.
 
