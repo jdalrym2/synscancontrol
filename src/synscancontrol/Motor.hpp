@@ -63,7 +63,7 @@ namespace SynScanControl
         void setMotion(bool moving);
         void setMicrosteps(uint8_t s);
 
-        void tick();
+        void IRAM_ATTR tick();
         void longTick();
 
         bool useAccel() { return (_type == SlewTypeEnum::GOTO || _speed == SlewSpeedEnum::FAST); };

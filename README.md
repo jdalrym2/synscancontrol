@@ -74,11 +74,13 @@ When enabled, print debugging information to the device's serial port. Disable w
 Allows over-the-air (OTA) updates via WiFi. Must configure WiFi SSID and password in [Constants.hpp](src/synscancontrol/Constants.hpp) and, after upload, configure the OTA settings in [platformio.ini](platformio.ini) appropriately, e.g.:
 ```ini
 upload_protocol = espota
-upload_port = 192.168.0.102  ;  IP address, logged via serial by the firmware on WiFi connect
+upload_port = 192.168.0.123  ;  IP address, logged via serial by the firmware on WiFi connect
 ```
 
 ### UDP Logging (`-DUDP_LOGGING`)
 Allows debug logging via multicast UDP. Must configure WiFi SSID, password, and UDP port in [Constants.hpp](src/synscancontrol/Constants.hpp). After upload, see [udp_receiver.py](tools/udp_receiver.py) to view the debug log output. This script requires a basic Python 3.x environment with no additional dependencies.
+
+:warning: When enabling this, be wary of how much output is being sent over UDP and/or disable the motor interrupts. The combination is pushing the capabilities of the ESP32.
 
 ## Credits
 

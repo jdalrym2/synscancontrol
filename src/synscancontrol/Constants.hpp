@@ -131,8 +131,8 @@ namespace SynScanControl
 
 #if defined(OTA_UPDATES) || defined(UDP_LOGGING)
     /* WiFI SSID / password (if applicable) */
-    const char ssid[] = "YOUR_SSID_HERE";
-    const char password[] = "YOUR_PASSWORD_HERE";
+    const char WIFI_SSID[] = "YOUR_SSID_HERE";
+    const char WIFI_PASSWORD[] = "YOUR_PASSWORD_HERE";
 #endif
 
 #ifdef UDP_LOGGING

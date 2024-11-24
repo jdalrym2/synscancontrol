@@ -287,7 +287,7 @@ void Motor::setMicrosteps(uint8_t s)
     }
 }
 
-void Motor::tick()
+void IRAM_ATTR Motor::tick()
 {
     if (_moving)
     {

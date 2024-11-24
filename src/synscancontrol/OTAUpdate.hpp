@@ -93,12 +93,17 @@ namespace SynScanControl
                      { OTA::onError(error, s); });
     }
 
-    void beginOTA()
+    inline void beginOTA()
     {
         ArduinoOTA.begin();
     }
 
-    void handleOTA()
+    inline void endOTA()
+    {
+        ArduinoOTA.end();
+    }
+
+    inline void handleOTA()
     {
         ArduinoOTA.handle();
     }

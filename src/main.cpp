@@ -62,6 +62,9 @@ unsigned long longTickTimer = 0;
 
 // Logger
 Logger logger;
+#ifdef UDP_LOGGING
+UDPLoggerHandler *udpHandler = nullptr;
+#endif
 
 // Motors
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, false, &logger);
@@ -77,7 +80,7 @@ PolarScopeLED polarScopeLED(SCOPE_LED, SCOPE_LED_PWM, &logger);
 CommandHandler cmdHandler(&SerialSynScan, &raMotor, &decMotor, &polarScopeLED, &logger);
 
 // Motor fast tick (hardware interrupt)
-void tick()
+void IRAM_ATTR tick()
 {
     decMotor.tick();
     raMotor.tick();
@@ -144,7 +147,7 @@ void setup()
     SerialLogger.println("Starting WiFi...");
     statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_SLOW);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 #endif
 
     // Configure logger
@@ -153,14 +156,12 @@ void setup()
 #endif
 
 #ifdef UDP_LOGGING
-    logger.addHandler(new UDPLoggerHandler(UDP_LOGGER_PORT, &SerialLogger));
+    udpHandler = new UDPLoggerHandler(UDP_LOGGER_PORT, &SerialLogger);
+    logger.addHandler(udpHandler);
 #endif
 
 #ifdef OTA_UPDATES
-    // Setup OTA
     setupOTA(tickTimer, &SerialLogger);
-    if (wifiConnected)
-        beginOTA();
 #endif
 
     logger.debug("Logging started!");
@@ -175,14 +176,27 @@ void loop()
 #ifdef USE_WIFI
     if (!wifiConnected && WiFi.status() == WL_CONNECTED)
     {
-        SerialLogger.println("WiFi connected");
+        SerialLogger.println("WiFi connected: ");
+        SerialLogger.println(WiFi.localIP().toString());
         wifiConnected = true;
+#ifdef UDP_LOGGING
+        udpHandler->connect();
+#endif
+#ifdef OTA_UPDATES
+        beginOTA();
+#endif
         statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_FAST);
     }
     else if (wifiConnected && WiFi.status() != WL_CONNECTED)
     {
         SerialLogger.println("WiFi disconnected");
         wifiConnected = false;
+#ifdef UDP_LOGGING
+        udpHandler->disconnect();
+#endif
+#ifdef OTA_UPDATES
+        endOTA();
+#endif
         statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_SLOW);
     }
 #endif

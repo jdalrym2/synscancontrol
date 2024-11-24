@@ -35,23 +35,40 @@
 class UDPLoggerHandler : public LoggerHandler
 {
 public:
-    UDPLoggerHandler(uint16_t udpPort, HardwareSerial *s = nullptr)
+    UDPLoggerHandler(uint16_t udpPort, HardwareSerial *s = nullptr) : _udpPort(udpPort), _s(s) {};
+
+    void connect()
     {
-        _udpPort = udpPort;
-        /*if (_udp->connect(IPAddress(255, 255, 255, 255), _udpPort))
+        if (_udp == nullptr)
+            _udp = new AsyncUDP();
+
+        if (_udp->connect(IPAddress(255, 255, 255, 255), _udpPort))
         {
-            if (s != nullptr)
-                s->println("UDP connected");
-        }*/
+            if (_s != nullptr)
+                _s->println("UDP connected");
+            _isConnected = true;
+        }
     }
+
+    void disconnect()
+    {
+        if (_udp != nullptr)
+            delete _udp;
+        _udp = nullptr;
+        _isConnected = false;
+    }
+
     void log(const char *msg) override
     {
-        // _udp->broadcastTo(msg, _udpPort);
+        if (_isConnected && _udp != nullptr)
+            _udp->broadcastTo(msg, _udpPort);
     }
 
 private:
     uint16_t _udpPort = 0;
-    AsyncUDP *_udp;
+    bool _isConnected = false;
+    AsyncUDP *_udp = nullptr;
+    HardwareSerial *_s = nullptr;
 };
 
 #endif
