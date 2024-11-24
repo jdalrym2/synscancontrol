@@ -2,6 +2,9 @@
 
 This project is an open source drop-in replacement for the motherboard of the popular Sky-Watcher HEQ5 (Orion Sirius EQ-G) mount based on the ESP32 and using the SynScan protocol.
 
+<img src="docs/photos/pcb_w_components.jpg" alt="PCB width components" width="512"/> 
+<img src="docs/photos/pcb_mounted.jpg" alt="PCB mounted in HEQ5" width="512"/> 
+
 ## Features
 
 - Drop-in replacement from the original HEQ5 motherboard
@@ -25,12 +28,12 @@ My original motherboard failed and the (really expensive) replacement I got from
 
 [**Link to Project on OSHWLab**](https://oshwlab.com/j_dalrym2/synscan-control-rev-1_copy_copy)
 
-The project is based on the [HiLetGo NodeMCU ESP-32S](http://www.hiletgo.com/ProductDetail/1906566.html). Here is an [Amazon link to the one I have](https://www.amazon.com/gp/product/B0718T232Z). I will include a chart of this microcontroller's pinout in case a clone of this board matching the same pinout might work.
+The project is based on the [HiLetGo NodeMCU ESP-32S](http://www.hiletgo.com/ProductDetail/1906566.html). Here is an [Amazon link to the one I have](https://www.amazon.com/gp/product/B0718T232Z). I will include [a chart of this microcontroller's pinout](./docs/photos/hiletgo_nodemcu_esp32s.jpg) in case a clone of this board matching the same pinout might work.
 
 Other key hardware components are:
-- 2x DRV8825 stepper motor driver board ([Amazon link](https://www.amazon.com/gp/product/B07XF2LYC8), set the current limiter to about 1.5A)
-- 1x ADUM1201 magnetic isolator board ([Amazon link](https://www.amazon.com/gp/product/B0725BJMTQ))
-- Some sort of 5v regular board with a 4-pin header ([Amazon link](https://www.amazon.com/gp/product/B08JZ5FVLC))
+- 2x [DRV8825](./docs/photos/drv8825_top.jpg) stepper motor driver board ([Amazon link](https://www.amazon.com/gp/product/B07XF2LYC8), set the current limiter to about 1.5A)
+- 1x [ADUM1201](./docs/photos/adum1201.jpg) magnetic isolator board ([Amazon link](https://www.amazon.com/gp/product/B0725BJMTQ))
+- Some sort of [5v regular board](./docs/photos/5v_regulator_board.jpg) with a 4-pin header ([Amazon link](https://www.amazon.com/gp/product/B08JZ5FVLC))
 
 I have included all of the PCB development files and images of the components I used under the [./docs](./docs) folder in this repository.
 
