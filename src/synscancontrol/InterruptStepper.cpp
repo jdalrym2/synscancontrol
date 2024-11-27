@@ -1,5 +1,37 @@
+/*
+ * Project Name: synscancontrol
+ * File: InterruptStepper.cpp
+ *
+ * Copyright (C) 2024 Jon Dalrymple
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Jon Dalrymple
+ * Created: 13 November 2024
+ * Description: Manages low-level stepper motor hardware logic
+ *
+ * Re-uses code from the AccelStepper project, licensed via GPLv3.
+ * For more info see README.md.
+ *
+ * Cited equations are referring to the following paper:
+ * Austin, D. (2005). Generate stepper-motor speed profiles in real time.
+ * Embedded Systems Programming, 1.
+ */
 #include <Arduino.h>
 #include "InterruptStepper.hpp"
+
+using namespace SynScanControl;
 
 InterruptStepper::InterruptStepper(uint8_t STEP, uint8_t DIR, uint32_t FREQ, bool DIR_REVERSE)
 {
@@ -116,13 +148,13 @@ void InterruptStepper::run()
 void InterruptStepper::step()
 {
     GPIO.out_w1ts = ((uint32_t)1 << _STEP); // digitalWrite(_STEP, 1)
-    delayMicroseconds(4);                   // DRV8825 - 1.9us minimum pulse width
+    delayMicroseconds(STEPPER_PULSE_WIDTH_US);
     GPIO.out_w1tc = ((uint32_t)1 << _STEP); // digitalWrite(_STEP, 0)
 }
 
-// distanceToGo() override that supports
-// infinite distances via the STEPPER_[N]INFINITE
-// static members
+// Inspired from AccelStepper:distanceToGo()
+// supports infinite distances via the
+// STEPPER_[N]INFINITE static members
 int32_t InterruptStepper::distanceToGo()
 {
     if (_targetPos >= STEPPER_INFINITE)

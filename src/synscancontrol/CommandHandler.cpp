@@ -1,9 +1,37 @@
+/*
+ * Project Name: synscancontrol
+ * File: CommandHandler.cpp
+ *
+ * Copyright (C) 2024 Jon Dalrymple
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Jon Dalrymple
+ * Created: 13 November 2024
+ * Description: Provides business logic for responding to SynScan commands
+ *
+ * Much of this code is directly inspired from Open-Synscan, so refer to
+ * that project as well if something is confusing.
+ */
 #include "CommandHandler.hpp"
 
-CommandHandler::CommandHandler(HardwareSerial *commSerial,
+using namespace SynScanControl;
+
+CommandHandler::CommandHandler(HardwareSerial *serial,
                                Motor *raMotor, Motor *decMotor, PolarScopeLED *polarScopeLED, Logger *logger)
 {
-    _commSerial = commSerial;
+    _serial = serial;
     _raMotor = raMotor;
     _decMotor = decMotor;
     _polarScopeLED = polarScopeLED;
@@ -13,14 +41,14 @@ CommandHandler::CommandHandler(HardwareSerial *commSerial,
 void CommandHandler::processSerial()
 {
     // Process available serial
-    while (_commSerial->available() > 0)
+    while (_serial->available() > 0)
     {
         // We are processing serial!
         _serialStarted = true;
         _timeoutCounter = millis();
 
         // Read in a character
-        char inChar = _commSerial->read();
+        char inChar = _serial->read();
 
         // If it's the start character, clear the buffer
         if (inChar == _startChar)
@@ -32,9 +60,9 @@ void CommandHandler::processSerial()
         if (inChar == _endChar && _buffer_idx > 2)
         {
             // Log the command we got
-            /*std::ostringstream log;
+            std::ostringstream log;
             log << "Received command: " << _buffer;
-            _logger->debug(&log);*/
+            _logger->debug(&log);
 
             // Process the message and get a reply
             Command *cmd = CommandFactory::parse(_buffer, _buffer_idx);
@@ -50,12 +78,12 @@ void CommandHandler::processSerial()
                     if (reply)
                     {
                         // Log the reply we are giving
-                        /*std::ostringstream log;
+                        std::ostringstream log;
                         log << "Sending reply: ";
                         reply->toStringStream(&log);
-                        _logger->debug(&log);*/
+                        _logger->debug(&log);
 
-                        reply->send(_commSerial);
+                        reply->send(_serial);
                     }
                     else
                     {
@@ -99,9 +127,9 @@ void CommandHandler::processSerial()
         }
     }
 
-    // Serial timeout handling
 #ifdef SERIAL_TIMEOUT
-    if (_serialStarted && (millis() - _timeoutCounter > _timeoutMillis))
+    // Serial timeout handling
+    if (_serialStarted && (millis() - _timeoutCounter > SERIAL_TIMEOUT_MS))
     {
         _logger->info("Serial timeout reached!");
         _serialStarted = false;
@@ -276,7 +304,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     }
     case CommandEnum::SET_AUTOGUIDE_SPEED_CMD:
     {
-        // SetAudioguideSpeedCommand *thisCmd = (SetAudioguideSpeedCommand *)cmd;
+        // SetAutoguideSpeedCommand *thisCmd = (SetAutoguideSpeedCommand *)cmd;
         // TODO: if we want
         reply = new EmptyReply();
         break;
@@ -292,7 +320,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetCountsPerRevCommand *thisCmd = (GetCountsPerRevCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->MICROSTEPS_PER_REV, 6);
+        data_reply->setData(MICROSTEPS_PER_REV, 6);
         reply = data_reply;
         break;
     }
@@ -300,7 +328,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetTimerFreqCommand *thisCmd = (GetTimerFreqCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->MAX_PULSE_PER_SECOND, 6);
+        data_reply->setData(MAX_PULSE_PER_SECOND, 6);
         reply = data_reply;
         break;
     }
@@ -338,7 +366,6 @@ Reply *CommandHandler::_processCommand(Command *cmd)
         status_reply->setInitDone(true);
         status_reply->setBlocked(false);
 
-        // TODO: replace with motor state variables for this axis
         status_reply->setRunning(thisMotor->isMoving());
         status_reply->setSlewMode(thisMotor->getSlewType());
         status_reply->setSpeedMode(thisMotor->getSlewSpeed());
@@ -350,7 +377,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetHighSpeedRatioCommand *thisCmd = (GetHighSpeedRatioCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->HIGH_SPEED_RATIO, 2);
+        data_reply->setData(HIGH_SPEED_RATIO, 2);
         reply = data_reply;
         break;
     }
@@ -358,7 +385,7 @@ Reply *CommandHandler::_processCommand(Command *cmd)
     {
         // GetSiderealPeriodCommand *thisCmd = (GetSiderealPeriodCommand *)cmd;
         DataReply *data_reply = new DataReply();
-        data_reply->setData(thisMotor->SIDEREAL_PULSE_PER_STEP, 6);
+        data_reply->setData(SIDEREAL_PULSE_PER_STEP, 6);
         reply = data_reply;
         break;
     }

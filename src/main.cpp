@@ -1,66 +1,58 @@
+/*
+ * Project Name: synscancontrol
+ * File: main.cpp
+ *
+ * Copyright (C) 2024 Jon Dalrymple
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Jon Dalrymple
+ * Created: 13 November 2024
+ * Description: synscancontrol firmware entrypoint
+ */
+// allows us to rename Serial / Serial2 to more meaningful names
+#define NO_GLOBAL_SERIAL
+
+// Make a USE_WIFI define for convenience
+#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
+#define USE_WIFI
+#endif
+
 #include <Arduino.h>
 
-#ifdef OTA_UPDATES
+#ifdef USE_WIFI
 #include <WiFi.h>
-#include <ESPmDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
 #endif
 
-#ifdef UDP_LOGGING
-#include <WiFi.h>
-#include <AsyncUDP.h>
-#endif
-
+#include "Constants.hpp"
 #include "Logger.hpp"
 #include "Enums.hpp"
 #include "Motor.hpp"
+#include "OTAUpdate.hpp"
 #include "PolarScopeLED.hpp"
+#include "StatusLED.hpp"
 #include "CommandHandler.hpp"
+#include "UDPLogger.hpp"
 
-#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
-const char *ssid = "YOUR_SSID_HERE";
-const char *password = "YOUR_PASSWORD_HERE";
-bool wifiConnected = true;
-#endif
+using namespace SynScanControl;
 
-#ifdef UDP_LOGGING
-AsyncUDP udp;
-#endif
+// Serial ports
+HardwareSerial SerialLogger(SERIAL_LOGGER_UART);
+HardwareSerial SerialSynScan(SERIAL_SYNSCAN_UART);
 
-// RA motor pinouts
-#define RA_M0 12
-#define RA_M1 14
-#define RA_M2 27
-#define RA_STEP 26
-#define RA_DIR 25
-
-// DEC motor pinouts
-#define DEC_M0 33
-#define DEC_M1 32
-#define DEC_M2 5
-#define DEC_STEP 18
-#define DEC_DIR 19
-
-// Autoguider pinouts
-#define RA_POS_PIN 36
-#define DEC_POS_PIN 39
-#define RA_NEG_PIN 34
-#define DEC_NEG_PIN 35
-
-// LED pinouts
-#define PWR_LED 4
-#define SCOPE_LED 15
-#define BUILT_IN_LED 2
-
-// LED PWM channels
-#define PWR_LED_PWM 0
-#define SCOPE_LED_PWM 1
-#define BUILT_IN_LED_PWM 2
-
-// Serial pinouts
-#define SERIAL2_RX 16
-#define SERIAL2_TX 17
+// State variables
+bool wifiConnected = false;
 
 // Hardware timers
 hw_timer_t *tickTimer = nullptr;
@@ -70,30 +62,33 @@ unsigned long longTickTimer = 0;
 
 // Logger
 Logger logger;
+#ifdef UDP_LOGGING
+UDPLoggerHandler *udpHandler = nullptr;
+#endif
 
 // Motors
 Motor raMotor(AxisEnum::AXIS_RA, RA_M0, RA_M1, RA_M2, RA_STEP, RA_DIR, 0x800000, false, &logger);
 Motor decMotor(AxisEnum::AXIS_DEC, DEC_M0, DEC_M1, DEC_M2, DEC_STEP, DEC_DIR, 0x913640, true, &logger);
 
+// Power / Status LED
+StatusLED statusLED(PWR_LED, PWR_LED_PWM, &logger);
+
 // Polar Scope LED
 PolarScopeLED polarScopeLED(SCOPE_LED, SCOPE_LED_PWM, &logger);
 
 // Serial Command handler
-CommandHandler cmdHandler(&Serial2, &raMotor, &decMotor, &polarScopeLED, &logger);
+CommandHandler cmdHandler(&SerialSynScan, &raMotor, &decMotor, &polarScopeLED, &logger);
 
 // Motor fast tick (hardware interrupt)
-void tick()
+void IRAM_ATTR tick()
 {
-#ifndef UDP_LOGGING
     decMotor.tick();
     raMotor.tick();
-#endif
 }
 
 // Motor slow tick (loop)
 void longTick()
 {
-
     decMotor.longTick();
     raMotor.longTick();
 }
@@ -104,6 +99,9 @@ void setup()
     setCpuFrequencyMhz(240);
 
     // Set output pins
+    pinMode(PWR_LED, OUTPUT);
+    pinMode(SCOPE_LED, OUTPUT);
+    pinMode(BUILT_IN_LED, OUTPUT);
     pinMode(RA_M0, OUTPUT);
     pinMode(RA_M1, OUTPUT);
     pinMode(RA_M2, OUTPUT);
@@ -120,41 +118,16 @@ void setup()
     pinMode(DEC_NEG_PIN, INPUT);
 
     // Setup serial ports
-    Serial.begin(9600);
-    Serial2.begin(9600, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
-
-#if defined(OTA_UPDATES) || defined(UDP_LOGGING)
-    // Connect to WiFi
-    WiFi.mode(WIFI_STA);
-    Serial.println("Starting WiFi...");
-    WiFi.begin(ssid, password);
-    wifiConnected = (WiFi.waitForConnectResult() == WL_CONNECTED);
-    if (!wifiConnected)
-    {
-        Serial.println("Connection Failed!");
-    }
-    else
-    {
-        Serial.println("Ready");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-    }
-#endif
-
-#ifdef UDP_LOGGING
-    logger.addUDPHandler(&udp, 6309);
-#endif
+    SerialLogger.begin(115200);
+    SerialSynScan.begin(9600, SERIAL_8N1, SERIAL_SYNSCAN_RX, SERIAL_SYNSCAN_TX);
 
     // Setup LED pins
-    polarScopeLED.begin(); // handles polar scope LED
-    ledcAttachPin(PWR_LED, PWR_LED_PWM);
-    ledcSetup(PWR_LED_PWM, 5000, 8);
-    ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
-    ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
+    polarScopeLED.begin();
+    statusLED.begin();
 
-    // Static brightness for now
-    // We can do way cooler things to show status, etc, later
-    ledcWrite(PWR_LED_PWM, 255);
+    // Built-in LED unused atm
+    ledcSetup(BUILT_IN_LED_PWM, 5000, 8);
+    ledcAttachPin(BUILT_IN_LED, BUILT_IN_LED_PWM);
 
     // Setup motor tick timers
     tickTimer = timerBegin(0, 80, true);
@@ -166,49 +139,29 @@ void setup()
     decMotor.begin();
     raMotor.begin();
 
-    // Setup slow timer
+    // Setup slow non-interrupt timer
     longTickTimer = millis();
 
+#ifdef USE_WIFI
+    // Async WiFi setup (we don't wait for it to connect)
+    SerialLogger.println("Starting WiFi...");
+    statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_SLOW);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+#endif
+
     // Configure logger
-    logger.addHardwareSerialHandler(&Serial);
+#ifdef SERIAL_DEBUG
+    logger.addHandler(new HardwareSerialLoggerHandler(&SerialLogger));
+#endif
+
+#ifdef UDP_LOGGING
+    udpHandler = new UDPLoggerHandler(UDP_LOGGER_PORT, &SerialLogger);
+    logger.addHandler(udpHandler);
+#endif
 
 #ifdef OTA_UPDATES
-    ArduinoOTA
-        .onStart([]()
-                 {
-                     String type;
-                     if (ArduinoOTA.getCommand() == U_FLASH)
-                         type = "sketch";
-                     else // U_SPIFFS
-                         type = "filesystem";
-
-                     // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-                     Serial.println("Start updating " + type);
-
-                     // Disable hardware timer
-                     timerAlarmDisable(tickTimer);
-                     timerDetachInterrupt(tickTimer); })
-        .onEnd([]()
-               { Serial.println("\nEnd"); })
-        .onProgress([](unsigned int progress, unsigned int total)
-                    { Serial.printf("Progress: %u%%\r", (progress / (total / 100))); })
-        .onError([](ota_error_t error)
-                 {
-                     Serial.printf("Error[%u]: ", error);
-                     if (error == OTA_AUTH_ERROR)
-                         Serial.println("Auth Failed");
-                     else if (error == OTA_BEGIN_ERROR)
-                         Serial.println("Begin Failed");
-                     else if (error == OTA_CONNECT_ERROR)
-                         Serial.println("Connect Failed");
-                     else if (error == OTA_RECEIVE_ERROR)
-                         Serial.println("Receive Failed");
-                     else if (error == OTA_END_ERROR)
-                         Serial.println("End Failed"); });
-
-    if (wifiConnected)
-        ArduinoOTA.begin();
-
+    setupOTA(tickTimer, &SerialLogger);
 #endif
 
     logger.debug("Logging started!");
@@ -219,7 +172,36 @@ void loop()
     // Process serial port
     cmdHandler.processSerial();
 
-    // Process slow (long tick) timer
+// Check WiFi status
+#ifdef USE_WIFI
+    if (!wifiConnected && WiFi.status() == WL_CONNECTED)
+    {
+        SerialLogger.println("WiFi connected: ");
+        SerialLogger.println(WiFi.localIP().toString());
+        wifiConnected = true;
+#ifdef UDP_LOGGING
+        udpHandler->connect();
+#endif
+#ifdef OTA_UPDATES
+        beginOTA();
+#endif
+        statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_FAST);
+    }
+    else if (wifiConnected && WiFi.status() != WL_CONNECTED)
+    {
+        SerialLogger.println("WiFi disconnected");
+        wifiConnected = false;
+#ifdef UDP_LOGGING
+        udpHandler->disconnect();
+#endif
+#ifdef OTA_UPDATES
+        endOTA();
+#endif
+        statusLED.setBlinkStatus(StatusLED::BlinkStatus::BLINK_SLOW);
+    }
+#endif
+
+    // Process slow (long tick) non-interrupt timer
     if (millis() - longTickTimer > 100)
     {
         longTickTimer = millis();
@@ -228,6 +210,6 @@ void loop()
 
 #ifdef OTA_UPDATES
     if (wifiConnected)
-        ArduinoOTA.handle();
+        handleOTA();
 #endif
 }

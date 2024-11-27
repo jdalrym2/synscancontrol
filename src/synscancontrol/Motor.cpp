@@ -1,7 +1,32 @@
+/*
+ * Project Name: synscancontrol
+ * File: Motor.cpp
+ *
+ * Copyright (C) 2024 Jon Dalrymple
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Jon Dalrymple
+ * Created: 13 November 2024
+ * Description: Manages high-level stepper motor control logic
+ */
 #include <Arduino.h>
 #include <sstream>
 
 #include "Motor.hpp"
+
+using namespace SynScanControl;
 
 Motor::Motor(AxisEnum axis, uint8_t M0, uint8_t M1, uint8_t M2, uint8_t STEP, uint8_t DIR, uint32_t startPos, bool dirReverse, Logger *logger)
 {
@@ -205,9 +230,9 @@ void Motor::setMotion(bool moving)
         _toStop = true;
 
         // Debug
-        /*std::ostringstream log;
+        std::ostringstream log;
         log << "Axis: " << int(_axis) << "; About to stop! Speed: " << _stepper.getSpeed() << ", Steps to stop: " << _stepper.stepsToStop();
-        _logger->debug(&log);*/
+        _logger->debug(&log);
 
         if (getSlewDirection() == SlewDirectionEnum::CW)
         {
@@ -262,7 +287,7 @@ void Motor::setMicrosteps(uint8_t s)
     }
 }
 
-void Motor::tick()
+void IRAM_ATTR Motor::tick()
 {
     if (_moving)
     {
@@ -307,7 +332,7 @@ void Motor::longTick()
 {
     if (_moving)
     {
-        // Debug
+        // NOTE: this is a bit too verbose to keep enabled!
         /*if (int(_axis) == 2)
         {
             std::ostringstream log;

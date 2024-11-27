@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" Rudimentary UDP log reciever """
+""" Rudimentary UDP log receiver """
 
 import sys
 import socket
 import logging
+import argparse
 
 if __name__  == '__main__':
+
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-p', '--port', required=False, type=int, default=6309,
+                        help='UDP port to listen to for logging')
+    pargs = parser.parse_args()
 
     # Configure logging
     logger = logging.getLogger(__name__)
@@ -15,10 +21,10 @@ if __name__  == '__main__':
     h.setFormatter(logging.Formatter("%(asctime)-15s %(levelname)s %(message)s"))
     logger.addHandler(h)
 
-    logger.info('Logging started.')
-
     UDP_IP  = '0.0.0.0'
-    UDP_PORT = 6309
+    UDP_PORT = pargs.port
+
+    logger.info(f'Listening to {UDP_IP}:{UDP_PORT}')
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((UDP_IP, UDP_PORT))

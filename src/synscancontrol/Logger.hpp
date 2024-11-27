@@ -1,11 +1,33 @@
+/*
+ * Project Name: synscancontrol
+ * File: Logger.hpp
+ *
+ * Copyright (C) 2024 Jon Dalrymple
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Jon Dalrymple
+ * Created: 13 November 2024
+ * Description: Debug logging handlers
+ */
 #ifndef LOGGER_H
 #define LOGGER_H
 
 #include <Arduino.h>
 #include <stdint.h>
 #include <sstream>
-
-#include <AsyncUDP.h>
+#include <vector>
 
 enum class LoggingLevel
 {
@@ -19,14 +41,14 @@ enum class LoggingLevel
 class LoggerHandler
 {
 public:
-    LoggerHandler(){};
-    virtual void log(const char *msg);
+    LoggerHandler() {};
+    virtual void log(const char *msg) = 0;
 };
 
 class HardwareSerialLoggerHandler : public LoggerHandler
 {
 public:
-    HardwareSerialLoggerHandler(HardwareSerial *s) : _s(s){};
+    HardwareSerialLoggerHandler(HardwareSerial *s) : _s(s) {};
     void log(const char *msg) override
     {
         _s->println(msg);
@@ -36,40 +58,15 @@ private:
     HardwareSerial *_s = nullptr;
 };
 
-class UDPLoggerHandler : public LoggerHandler
-{
-public:
-    UDPLoggerHandler(AsyncUDP *udp, uint16_t udpPort)
-    {
-        _udpPort = udpPort;
-        _udp = udp;
-        if (udp->connect(IPAddress(255, 255, 255, 255), _udpPort))
-        {
-            Serial.println("UDP connected.");
-        }
-    }
-    void log(const char *msg) override
-    {
-        _udp->broadcastTo(msg, _udpPort);
-    }
-
-private:
-    uint16_t _udpPort = 0;
-    AsyncUDP *_udp;
-};
-
 class Logger
 {
 public:
-    Logger(){};
-    void addHardwareSerialHandler(HardwareSerial *s)
+    Logger() {};
+
+    void addHandler(LoggerHandler *handler)
     {
-        _addHandler(new HardwareSerialLoggerHandler(s));
-    };
-    void addUDPHandler(AsyncUDP *udp, uint16_t udpPort)
-    {
-        _addHandler(new UDPLoggerHandler(udp, udpPort));
-    };
+        _handlerList.push_back(handler);
+    }
     void debug(const char *msg)
     {
         return _log(LoggingLevel::LOG_DEBUG, msg);
@@ -113,11 +110,7 @@ public:
 
 private:
     std::vector<LoggerHandler *> _handlerList;
-    char buffer[2048];
-    void _addHandler(LoggerHandler *handler)
-    {
-        _handlerList.push_back(handler);
-    }
+    char buffer[2048]; // TODO: enable larger buffer?
     void _log(LoggingLevel level, const char *msg)
     {
         switch (level)
